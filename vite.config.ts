@@ -5,6 +5,8 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    // Base path for GitHub Pages project site: https://<user>.github.io/nhatkytaichinh/
+    base: process.env.GITHUB_PAGES === 'true' ? '/nhatkytaichinh/' : '/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
