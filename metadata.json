@@ -1,0 +1,6 @@
+{
+  "name": "Nhật ký Tài chính",
+  "description": "Ứng dụng quản lý tài chính cá nhân, quản lý quỹ thông minh và theo dõi thu chi chi tiết.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
