@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Transaction, Fund } from '../types';
-import { formatCurrency, formatFriendlyDate } from '../utils';
+import { formatFriendlyDate } from '../utils';
+import { usePrivacy } from '../PrivacyContext';
 import { Search, ArrowDownLeft, ArrowUpRight, Trash2, Filter, Info, X, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -22,6 +23,7 @@ export default function TransactionHistory({
   const [selectedType, setSelectedType] = useState<'all' | 'expense' | 'income'>('all');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const { format: formatCurrency } = usePrivacy();
 
   // Calculate warning funds
   const warningFunds = useMemo(() => {

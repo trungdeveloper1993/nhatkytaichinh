@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Fund, FUND_COLORS } from '../types';
-import { formatCurrency } from '../utils';
+import { usePrivacy } from '../PrivacyContext';
 import { Wallet, Landmark, Copy, Check, Trash2, Edit3 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -16,6 +16,7 @@ interface FundCardProps {
 export default function FundCard({ fund, onDelete, onEdit, canDelete, currentMonthSpent = 0 }: FundCardProps) {
   const [copied, setCopied] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const { format: formatCurrency } = usePrivacy();
 
   // Find color style
   const colorScheme = FUND_COLORS.find((c) => c.value === fund.color) || FUND_COLORS[0];

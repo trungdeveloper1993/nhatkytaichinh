@@ -7,9 +7,9 @@ import EditFundModal from './components/EditFundModal';
 import TransactionForm from './components/TransactionForm';
 import FinancialCharts from './components/FinancialCharts';
 import TransactionHistory from './components/TransactionHistory';
-import { formatCurrency } from './utils';
-import { Wallet, Landmark, Landmark as BankIcon, CircleDollarSign, Plus, CheckCircle2, Layers, History, BarChart3, RotateCcw } from 'lucide-react';
+import { Wallet, Landmark, Landmark as BankIcon, CircleDollarSign, Plus, CheckCircle2, Layers, History, BarChart3, RotateCcw, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { usePrivacy } from './PrivacyContext';
 
 const LOCAL_STORAGE_FUNDS_KEY = 'nhat_ky_tai_chinh_funds';
 const LOCAL_STORAGE_TX_KEY = 'nhat_ky_tai_chinh_transactions';
@@ -20,6 +20,7 @@ export default function App() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<'funds' | 'transactions' | 'reports'>('funds');
   const [editingFund, setEditingFund] = useState<Fund | null>(null);
+  const { hidden, toggle, format } = usePrivacy();
 
   const currentMonthPrefix = useMemo(() => {
     const now = new Date();
@@ -201,10 +202,21 @@ export default function App() {
               <div>
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tổng số dư</p>
                 <p className="font-display font-black text-xl text-slate-800 tracking-tight">
-                  {formatCurrency(financialSummary.totalAssets)}
+                  {format(financialSummary.totalAssets)}
                 </p>
               </div>
             </div>
+
+            {/* Toggle hiển thị / ẩn số tiền */}
+            <button
+              id="toggle-privacy-btn"
+              onClick={toggle}
+              className="p-3 bg-white/50 hover:bg-white/80 border border-white/50 hover:border-indigo-300 text-slate-600 hover:text-indigo-600 rounded-2xl transition-all flex items-center gap-1.5 text-xs font-black shadow-2xs hover:shadow-xs shrink-0 cursor-pointer"
+              title={hidden ? 'Hiện số tiền' : 'Ẩn số tiền'}
+            >
+              {hidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              <span className="hidden sm:inline">{hidden ? 'Hiện số' : 'Ẩn số'}</span>
+            </button>
 
             {/* Reset Button */}
             <button
@@ -236,7 +248,7 @@ export default function App() {
             <div>
               <p className="text-xs font-bold text-slate-500 uppercase">Tiền Mặt & Ví</p>
               <p className="font-display font-extrabold text-xl text-emerald-600 mt-1">
-                {formatCurrency(financialSummary.cashAssets)}
+                {format(financialSummary.cashAssets)}
               </p>
             </div>
             <span className="p-3 bg-emerald-100/50 text-emerald-700 rounded-xl">
@@ -248,7 +260,7 @@ export default function App() {
             <div>
               <p className="text-xs font-bold text-slate-500 uppercase">Tài Khoản Ngân Hàng</p>
               <p className="font-display font-extrabold text-xl text-indigo-600 mt-1">
-                {formatCurrency(financialSummary.bankAssets)}
+                {format(financialSummary.bankAssets)}
               </p>
             </div>
             <span className="p-3 bg-indigo-100/50 text-indigo-700 rounded-xl">
