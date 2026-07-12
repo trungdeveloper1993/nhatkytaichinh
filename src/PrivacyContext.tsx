@@ -4,7 +4,12 @@ import { formatCurrency } from './utils';
 const LOCAL_STORAGE_PRIVACY_KEY = 'nhat_ky_tai_chinh_hide_amounts';
 
 // Chuỗi che khi bật chế độ ẩn số tiền (không lộ số chữ số thực tế)
-const MASK = '••••••• ₫';
+export const AMOUNT_MASK = '••••••• ₫';
+
+// Định dạng số tiền có tính đến trạng thái ẩn (dùng chung cho toàn cục và từng quỹ)
+export function formatAmount(amount: number, hidden: boolean): string {
+  return hidden ? AMOUNT_MASK : formatCurrency(amount);
+}
 
 interface PrivacyContextValue {
   hidden: boolean;
@@ -38,7 +43,7 @@ export function PrivacyProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const format = (amount: number) => (hidden ? MASK : formatCurrency(amount));
+  const format = (amount: number) => formatAmount(amount, hidden);
 
   return (
     <PrivacyContext.Provider value={{ hidden, toggle, format }}>
