@@ -119,6 +119,13 @@ export default function FundCard({ fund, onDelete, onEdit, canDelete, currentMon
           {fund.name}
         </h3>
 
+        {fund.type === 'bank' && fund.bankName && (
+          <div className="flex items-center gap-1.5 mt-1.5 text-[11px] font-bold text-indigo-700 bg-white/60 px-2 py-0.5 rounded-md w-fit border border-indigo-100">
+            <Landmark className="w-3 h-3" />
+            <span>{fund.bankName}</span>
+          </div>
+        )}
+
         {fund.type === 'bank' && fund.accountNumber && (
           <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500 font-mono bg-white/50 px-2 py-0.5 rounded-md w-fit border border-slate-100">
             <span>STK: {fund.accountNumber}</span>
@@ -135,6 +142,12 @@ export default function FundCard({ fund, onDelete, onEdit, canDelete, currentMon
               )}
             </button>
           </div>
+        )}
+
+        {fund.note && (
+          <p className="mt-2 text-xs text-slate-600 leading-snug italic bg-white/40 px-2.5 py-1.5 rounded-lg border border-white/50">
+            📝 {fund.note}
+          </p>
         )}
       </div>
 
