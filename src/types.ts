@@ -6,6 +6,8 @@ export interface Fund {
   type: FundType;
   balance: number;
   accountNumber?: string;
+  bankName?: string; // Tên ngân hàng (khi type === 'bank')
+  note?: string; // Mục đích của quỹ này là gì
   color: string; // Tailwind color name like 'emerald', 'indigo', 'amber', 'rose' etc.
   monthlyLimit?: number; // Hạn mức chi tiêu hàng tháng tối đa
   createdAt: string;
@@ -48,6 +50,54 @@ export const CATEGORIES_INCOME = [
   'Đầu tư 📈',
   'Quà tặng 🎁',
   'Nguồn khác 💵'
+];
+
+// Danh sách các ngân hàng hiện hữu tại Việt Nam (tên viết tắt phổ biến)
+export const VIETNAM_BANKS = [
+  'Vietcombank (VCB)',
+  'VietinBank (CTG)',
+  'BIDV',
+  'Agribank',
+  'Techcombank (TCB)',
+  'MB Bank (MBB)',
+  'ACB',
+  'VPBank',
+  'Sacombank (STB)',
+  'TPBank (TPB)',
+  'VIB',
+  'SHB',
+  'HDBank',
+  'MSB (Maritime Bank)',
+  'OCB',
+  'SeABank',
+  'Eximbank (EIB)',
+  'LPBank (LienVietPostBank)',
+  'Nam A Bank',
+  'Bac A Bank',
+  'ABBank',
+  'PVcomBank',
+  'SCB',
+  'Kienlongbank',
+  'BVBank (Bản Việt)',
+  'NCB',
+  'Saigonbank',
+  'PGBank',
+  'VietBank',
+  'BaoViet Bank',
+  'DongA Bank',
+  'CBBank',
+  'GPBank',
+  'OceanBank',
+  'Shinhan Bank',
+  'Woori Bank',
+  'HSBC Việt Nam',
+  'Standard Chartered',
+  'UOB Việt Nam',
+  'Public Bank Việt Nam',
+  'Cake by VPBank',
+  'Timo',
+  'Ubank by VPBank',
+  'Ngân hàng khác',
 ];
 
 export const FUND_COLORS = [

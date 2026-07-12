@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Fund, FUND_COLORS, FundType } from '../types';
+import { Fund, FUND_COLORS, FundType, VIETNAM_BANKS } from '../types';
 import { Landmark, Wallet, Plus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -13,6 +13,8 @@ export default function FundForm({ onAddFund }: FundFormProps) {
   const [type, setType] = useState<FundType>('cash');
   const [balance, setBalance] = useState<number>(0);
   const [accountNumber, setAccountNumber] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [note, setNote] = useState('');
   const [color, setColor] = useState('emerald');
   const [hasLimit, setHasLimit] = useState(false);
   const [limitAmount, setLimitAmount] = useState<number>(0);
@@ -34,6 +36,10 @@ export default function FundForm({ onAddFund }: FundFormProps) {
       newErrors.accountNumber = 'Số tài khoản ngân hàng là bắt buộc';
     }
 
+    if (type === 'bank' && !bankName.trim()) {
+      newErrors.bankName = 'Vui lòng chọn ngân hàng';
+    }
+
     if (hasLimit && limitAmount <= 0) {
       newErrors.limitAmount = 'Hạn mức chi tiêu hàng tháng phải lớn hơn 0';
     }
@@ -51,6 +57,8 @@ export default function FundForm({ onAddFund }: FundFormProps) {
       type,
       balance,
       accountNumber: type === 'bank' ? accountNumber.trim() : undefined,
+      bankName: type === 'bank' ? bankName.trim() : undefined,
+      note: note.trim() ? note.trim() : undefined,
       color,
       monthlyLimit: hasLimit ? limitAmount : undefined
     });
@@ -60,6 +68,8 @@ export default function FundForm({ onAddFund }: FundFormProps) {
     setType('cash');
     setBalance(0);
     setAccountNumber('');
+    setBankName('');
+    setNote('');
     setColor('emerald');
     setHasLimit(false);
     setLimitAmount(0);
@@ -160,24 +170,50 @@ export default function FundForm({ onAddFund }: FundFormProps) {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden"
+                  className="overflow-hidden space-y-3"
                 >
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                    Số tài khoản & Tên ngân hàng
-                  </label>
-                  <input
-                    id="fund-account-number-input"
-                    type="text"
-                    placeholder="Ví dụ: Techcombank - 1903456789012"
-                    value={accountNumber}
-                    onChange={(e) => setAccountNumber(e.target.value)}
-                    className={`w-full px-3.5 py-2.5 rounded-xl border glass-input ${
-                      errors.accountNumber ? 'border-red-400 focus:ring-red-100' : 'border-white/60 focus:border-indigo-400 focus:ring-indigo-100/50'
-                    } outline-hidden focus:ring-4 transition-all text-sm text-slate-800 font-medium`}
-                  />
-                  {errors.accountNumber && (
-                    <p className="text-red-500 text-xs mt-1 font-medium">{errors.accountNumber}</p>
-                  )}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      Ngân hàng
+                    </label>
+                    <select
+                      id="fund-bank-name-select"
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      className={`w-full px-3.5 py-2.5 rounded-xl border glass-input ${
+                        errors.bankName ? 'border-red-400 focus:ring-red-100' : 'border-white/60 focus:border-indigo-400 focus:ring-indigo-100/50'
+                      } outline-hidden focus:ring-4 transition-all text-sm text-slate-800 font-medium cursor-pointer`}
+                    >
+                      <option value="">-- Chọn ngân hàng --</option>
+                      {VIETNAM_BANKS.map((bank) => (
+                        <option key={bank} value={bank}>
+                          {bank}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.bankName && (
+                      <p className="text-red-500 text-xs mt-1 font-medium">{errors.bankName}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                      Số tài khoản
+                    </label>
+                    <input
+                      id="fund-account-number-input"
+                      type="text"
+                      placeholder="Ví dụ: 1903456789012"
+                      value={accountNumber}
+                      onChange={(e) => setAccountNumber(e.target.value)}
+                      className={`w-full px-3.5 py-2.5 rounded-xl border glass-input ${
+                        errors.accountNumber ? 'border-red-400 focus:ring-red-100' : 'border-white/60 focus:border-indigo-400 focus:ring-indigo-100/50'
+                      } outline-hidden focus:ring-4 transition-all text-sm text-slate-800 font-medium font-mono`}
+                    />
+                    {errors.accountNumber && (
+                      <p className="text-red-500 text-xs mt-1 font-medium">{errors.accountNumber}</p>
+                    )}
+                  </div>
                 </motion.div>
               )}
 
@@ -202,6 +238,21 @@ export default function FundForm({ onAddFund }: FundFormProps) {
                   </span>
                 </div>
                 {errors.balance && <p className="text-red-500 text-xs mt-1 font-medium">{errors.balance}</p>}
+              </div>
+
+              {/* Note: purpose of this fund */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Ghi chú <span className="normal-case font-medium text-slate-400">(mục đích của quỹ này)</span>
+                </label>
+                <textarea
+                  id="fund-note-input"
+                  rows={2}
+                  placeholder="Ví dụ: Quỹ dành cho việc tiết kiệm mua nhà, dự phòng khẩn cấp..."
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border glass-input border-white/60 focus:border-indigo-400 focus:ring-indigo-100/50 outline-hidden focus:ring-4 transition-all text-sm text-slate-800 font-medium resize-none"
+                />
               </div>
 
               {/* Monthly spending limit checkbox and input */}
