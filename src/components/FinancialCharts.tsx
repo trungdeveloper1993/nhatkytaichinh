@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Transaction, Fund } from '../types';
-import { calculateCategorySpending, calculateMonthlyReports, formatCurrency, formatMonthYear } from '../utils';
+import { calculateCategorySpending, calculateMonthlyReports, formatMonthYear } from '../utils';
+import { usePrivacy } from '../PrivacyContext';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { TrendingUp, TrendingDown, Calendar, PieChart as PieIcon, BarChart3, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -22,6 +23,7 @@ const COLOR_PALETTE = [
 ];
 
 export default function FinancialCharts({ transactions, funds }: FinancialChartsProps) {
+  const { format: formatCurrency } = usePrivacy();
   // Get all unique months from transactions in sorted order
   const availableMonths = useMemo(() => {
     const months = new Set<string>();

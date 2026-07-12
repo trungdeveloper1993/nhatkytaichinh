@@ -3,6 +3,7 @@ import { Fund, CATEGORIES_EXPENSE, CATEGORIES_INCOME, Transaction } from '../typ
 import { MinusCircle, PlusCircle, ArrowUpRight, ArrowDownLeft, Calendar, FileText, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatCurrency } from '../utils';
+import { usePrivacy } from '../PrivacyContext';
 
 interface TransactionFormProps {
   funds: Fund[];
@@ -20,6 +21,8 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successMsg, setSuccessMsg] = useState('');
+  // Che số dư quỹ (số tiền đang có) khi bật chế độ riêng tư
+  const { format: formatBalance } = usePrivacy();
 
   // Default selected fund if not set
   const selectedFundId = fundId || (funds.length > 0 ? funds[0].id : '');
@@ -46,7 +49,7 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
     if (activeTab === 'expense' && selectedFundId) {
       const chosenFund = funds.find((f) => f.id === selectedFundId);
       if (chosenFund && chosenFund.balance < amount) {
-        newErrors.amount = `Số dư quỹ không đủ (Hiện có ${formatCurrency(chosenFund.balance)})`;
+        newErrors.amount = `Số dư quỹ không đủ (Hiện có ${formatBalance(chosenFund.balance)})`;
       }
     }
 
@@ -214,7 +217,7 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
             >
               {funds.map((f) => (
                 <option key={f.id} value={f.id}>
-                  {f.name} ({formatCurrency(f.balance)})
+                  {f.name} ({formatBalance(f.balance)})
                 </option>
               ))}
             </select>
