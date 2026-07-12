@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Fund, FUND_COLORS } from '../types';
-import { usePrivacy } from '../PrivacyContext';
-import { Wallet, Landmark, Copy, Check, Trash2, Edit3 } from 'lucide-react';
+import { usePrivacy, formatAmount } from '../PrivacyContext';
+import { Wallet, Landmark, Copy, Check, Trash2, Edit3, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface FundCardProps {
@@ -16,7 +16,17 @@ interface FundCardProps {
 export default function FundCard({ fund, onDelete, onEdit, canDelete, currentMonthSpent = 0 }: FundCardProps) {
   const [copied, setCopied] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const { format: formatCurrency, hidden } = usePrivacy();
+  const { hidden: globalHidden } = usePrivacy();
+
+  // Trạng thái ẩn riêng cho từng quỹ, khởi tạo theo chế độ toàn cục
+  const [localHidden, setLocalHidden] = useState(globalHidden);
+
+  // Khi chế độ toàn cục thay đổi, đồng bộ lại trạng thái riêng của quỹ
+  useEffect(() => {
+    setLocalHidden(globalHidden);
+  }, [globalHidden]);
+
+  const formatCurrency = (amount: number) => formatAmount(amount, localHidden);
 
   // Find color style
   const colorScheme = FUND_COLORS.find((c) => c.value === fund.color) || FUND_COLORS[0];
@@ -86,6 +96,18 @@ export default function FundCard({ fund, onDelete, onEdit, canDelete, currentMon
           </div>
 
           <div className="flex items-center gap-1.5 relative z-10">
+            <button
+              id={`toggle-fund-privacy-btn-${fund.id}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setLocalHidden((prev) => !prev);
+              }}
+              className="p-1.5 rounded-lg hover:bg-white/90 text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer"
+              title={localHidden ? 'Hiện số tiền quỹ này' : 'Ẩn số tiền quỹ này'}
+            >
+              {localHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+
             {onEdit && (
               <button
                 id={`edit-fund-btn-${fund.id}`}
@@ -129,8 +151,8 @@ export default function FundCard({ fund, onDelete, onEdit, canDelete, currentMon
 
         {fund.type === 'bank' && fund.accountNumber && (
           <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500 font-mono bg-white/50 px-2 py-0.5 rounded-md w-fit border border-slate-100">
-            <span>STK: {hidden ? '••••••••••' : fund.accountNumber}</span>
-            {!hidden && (
+            <span>STK: {localHidden ? '••••••••••' : fund.accountNumber}</span>
+            {!localHidden && (
               <button
                 id={`copy-stk-btn-${fund.id}`}
                 onClick={handleCopy}
