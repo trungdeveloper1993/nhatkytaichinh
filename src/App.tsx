@@ -188,7 +188,7 @@ export default function App() {
               </h1>
             </div>
             <p className="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-wider">
-              Quản lý quỹ thông minh & Nhật ký chi tiêu
+              Hãy quản lý túi tiền của bạn nhé ❤️
             </p>
           </div>
 
@@ -417,7 +417,9 @@ export default function App() {
 
       {/* FOOTER */}
       <footer id="main-footer" className="bg-white border-t border-slate-200 mt-16 py-8 px-4 text-center text-xs text-slate-400 font-medium">
-        <p>© 2026 Nhật Ký Tài Chính. Ghi chép tài chính cá nhân an toàn - Bảo mật dữ liệu trên trình duyệt của bạn.</p>
+        <p className="max-w-2xl mx-auto leading-relaxed">
+          Lưu ý nhỏ nè ❤️ Nhật ký được lưu ngay trên trình duyệt của bạn. Vì vậy đừng xóa dữ liệu duyệt web (lịch sử / cache) và lưu ý khi đổi máy hoặc đổi trình duyệt — nếu không bạn có thể bị mất toàn bộ nhật ký đã ghi. Hãy giữ gìn cẩn thận nha!
+        </p>
       </footer>
 
       {/* Edit Fund Modal */}
