@@ -7,7 +7,7 @@ import EditFundModal from './components/EditFundModal';
 import TransactionForm from './components/TransactionForm';
 import FinancialCharts from './components/FinancialCharts';
 import TransactionHistory from './components/TransactionHistory';
-import { Wallet, Landmark, Landmark as BankIcon, CircleDollarSign, Plus, CheckCircle2, Layers, History, BarChart3, RotateCcw, Eye, EyeOff } from 'lucide-react';
+import { Wallet, Landmark, Landmark as BankIcon, CircleDollarSign, Plus, CheckCircle2, Layers, History, BarChart3, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePrivacy } from './PrivacyContext';
 
@@ -218,23 +218,6 @@ export default function App() {
               <span className="hidden sm:inline">{hidden ? 'Hiện số' : 'Ẩn số'}</span>
             </button>
 
-            {/* Reset Button */}
-            <button
-              id="reset-all-data-btn"
-              onClick={() => {
-                if (window.confirm('Bạn có chắc chắn muốn xóa toàn bộ quỹ và giao dịch để bắt đầu lại từ đầu không?')) {
-                  localStorage.removeItem(LOCAL_STORAGE_FUNDS_KEY);
-                  localStorage.removeItem(LOCAL_STORAGE_TX_KEY);
-                  setFunds(INITIAL_FUNDS);
-                  setTransactions(INITIAL_TRANSACTIONS);
-                }
-              }}
-              className="p-3 bg-rose-50 hover:bg-rose-100 border border-rose-200/55 hover:border-rose-300 text-rose-600 rounded-2xl transition-all flex items-center gap-1.5 text-xs font-black shadow-2xs hover:shadow-xs shrink-0 cursor-pointer"
-              title="Đặt lại và xóa toàn bộ dữ liệu"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span className="hidden sm:inline">Xóa dữ liệu</span>
-            </button>
           </div>
         </div>
       </header>
