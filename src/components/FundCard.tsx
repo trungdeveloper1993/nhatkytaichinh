@@ -16,7 +16,7 @@ interface FundCardProps {
 export default function FundCard({ fund, onDelete, onEdit, canDelete, currentMonthSpent = 0 }: FundCardProps) {
   const [copied, setCopied] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const { format: formatCurrency } = usePrivacy();
+  const { format: formatCurrency, hidden } = usePrivacy();
 
   // Find color style
   const colorScheme = FUND_COLORS.find((c) => c.value === fund.color) || FUND_COLORS[0];
@@ -129,19 +129,21 @@ export default function FundCard({ fund, onDelete, onEdit, canDelete, currentMon
 
         {fund.type === 'bank' && fund.accountNumber && (
           <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500 font-mono bg-white/50 px-2 py-0.5 rounded-md w-fit border border-slate-100">
-            <span>STK: {fund.accountNumber}</span>
-            <button
-              id={`copy-stk-btn-${fund.id}`}
-              onClick={handleCopy}
-              className="hover:text-indigo-600 transition-colors p-0.5"
-              title="Sao chép số tài khoản"
-            >
-              {copied ? (
-                <Check className="w-3.5 h-3.5 text-emerald-500" />
-              ) : (
-                <Copy className="w-3.5 h-3.5" />
-              )}
-            </button>
+            <span>STK: {hidden ? '••••••••••' : fund.accountNumber}</span>
+            {!hidden && (
+              <button
+                id={`copy-stk-btn-${fund.id}`}
+                onClick={handleCopy}
+                className="hover:text-indigo-600 transition-colors p-0.5"
+                title="Sao chép số tài khoản"
+              >
+                {copied ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+              </button>
+            )}
           </div>
         )}
 
