@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Fund, Transaction } from './types';
 import { INITIAL_FUNDS, INITIAL_TRANSACTIONS } from './data';
+import { exportToCsv, parseCsv } from './csv';
 import FundCard from './components/FundCard';
 import FundForm from './components/FundForm';
 import EditFundModal from './components/EditFundModal';
 import TransactionForm from './components/TransactionForm';
 import FinancialCharts from './components/FinancialCharts';
 import TransactionHistory from './components/TransactionHistory';
-import { Wallet, Landmark, Landmark as BankIcon, CircleDollarSign, Plus, CheckCircle2, Layers, History, BarChart3, Eye, EyeOff } from 'lucide-react';
+import { Wallet, Landmark, Landmark as BankIcon, CircleDollarSign, Plus, CheckCircle2, Layers, History, BarChart3, Eye, EyeOff, Download, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePrivacy } from './PrivacyContext';
 
@@ -21,6 +22,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'funds' | 'transactions' | 'reports'>('funds');
   const [editingFund, setEditingFund] = useState<Fund | null>(null);
   const { hidden, toggle, format } = usePrivacy();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentMonthPrefix = useMemo(() => {
     const now = new Date();
@@ -95,8 +97,18 @@ export default function App() {
       createdAt: new Date().toISOString()
     };
 
-    // Update the balance of the linked fund
+    // Update the balance of the linked fund(s)
     const nextFunds = funds.map((f) => {
+      // Chuyển quỹ: trừ ở quỹ nguồn, cộng ở quỹ đích
+      if (txData.type === 'transfer') {
+        if (f.id === txData.fundId) {
+          return { ...f, balance: f.balance - txData.amount };
+        }
+        if (f.id === txData.toFundId) {
+          return { ...f, balance: f.balance + txData.amount };
+        }
+        return f;
+      }
       if (f.id === txData.fundId) {
         const balanceChange = txData.type === 'income' ? txData.amount : -txData.amount;
         return {
@@ -119,8 +131,18 @@ export default function App() {
     const targetTx = transactions.find((t) => t.id === txId);
     if (!targetTx) return;
 
-    // Revert balance of the linked fund
+    // Revert balance of the linked fund(s)
     const nextFunds = funds.map((f) => {
+      // Hoàn tác chuyển quỹ: trả lại tiền cho quỹ nguồn, trừ ở quỹ đích
+      if (targetTx.type === 'transfer') {
+        if (f.id === targetTx.fundId) {
+          return { ...f, balance: f.balance + targetTx.amount };
+        }
+        if (f.id === targetTx.toFundId) {
+          return { ...f, balance: f.balance - targetTx.amount };
+        }
+        return f;
+      }
       if (f.id === targetTx.fundId) {
         // If it was an expense, add it back. If it was income, deduct it.
         const balanceRevert = targetTx.type === 'expense' ? targetTx.amount : -targetTx.amount;
@@ -143,6 +165,50 @@ export default function App() {
   const handleClearTransactions = () => {
     setTransactions([]);
     saveState(funds, []);
+  };
+
+  // Export toàn bộ dữ liệu (quỹ + giao dịch) ra file CSV để sao lưu
+  const handleExportCsv = () => {
+    const csv = exportToCsv(funds, transactions);
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const now = new Date();
+    const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `nhat-ky-tai-chinh-${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Import dữ liệu từ file CSV (ghi đè dữ liệu hiện tại sau khi xác nhận)
+  const handleImportCsv = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = String(event.target?.result || '');
+        const { funds: importedFunds, transactions: importedTx } = parseCsv(text);
+        if (
+          window.confirm(
+            `Tải lên ${importedFunds.length} quỹ và ${importedTx.length} giao dịch từ file CSV? Dữ liệu hiện tại sẽ được thay thế.`
+          )
+        ) {
+          setFunds(importedFunds);
+          setTransactions(importedTx);
+          saveState(importedFunds, importedTx);
+        }
+      } catch (err) {
+        window.alert(`Không thể đọc file CSV: ${err instanceof Error ? err.message : 'Lỗi không xác định'}`);
+      }
+    };
+    reader.readAsText(file);
+    // Reset để có thể chọn lại cùng một file lần sau
+    e.target.value = '';
   };
 
   // Financial summary metrics
@@ -217,6 +283,35 @@ export default function App() {
               {hidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               <span className="hidden sm:inline">{hidden ? 'Hiện số' : 'Ẩn số'}</span>
             </button>
+
+            {/* Lưu / Tải dữ liệu CSV (cột dọc nhỏ) */}
+            <div className="flex flex-col gap-1 shrink-0">
+              <button
+                id="export-csv-btn"
+                onClick={handleExportCsv}
+                className="px-2.5 py-1.5 bg-white/50 hover:bg-white/80 border border-white/50 hover:border-emerald-300 text-slate-600 hover:text-emerald-600 rounded-lg transition-all flex items-center gap-1.5 text-[11px] font-bold cursor-pointer"
+                title="Lưu toàn bộ dữ liệu ra file CSV để sao lưu"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Lưu CSV</span>
+              </button>
+              <button
+                id="import-csv-btn"
+                onClick={() => fileInputRef.current?.click()}
+                className="px-2.5 py-1.5 bg-white/50 hover:bg-white/80 border border-white/50 hover:border-indigo-300 text-slate-600 hover:text-indigo-600 rounded-lg transition-all flex items-center gap-1.5 text-[11px] font-bold cursor-pointer"
+                title="Tải dữ liệu từ file CSV đã sao lưu"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>Tải CSV</span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                onChange={handleImportCsv}
+                className="hidden"
+              />
+            </div>
 
           </div>
         </div>

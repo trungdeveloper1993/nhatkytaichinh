@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Transaction, Fund } from '../types';
 import { formatFriendlyDate } from '../utils';
 import { usePrivacy } from '../PrivacyContext';
-import { Search, ArrowDownLeft, ArrowUpRight, Trash2, Filter, Info, X, AlertTriangle } from 'lucide-react';
+import { Search, ArrowDownLeft, ArrowUpRight, Trash2, Filter, Info, X, AlertTriangle, ArrowLeftRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface TransactionHistoryProps {
@@ -20,7 +20,7 @@ export default function TransactionHistory({
 }: TransactionHistoryProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFundId, setSelectedFundId] = useState('all');
-  const [selectedType, setSelectedType] = useState<'all' | 'expense' | 'income'>('all');
+  const [selectedType, setSelectedType] = useState<'all' | 'expense' | 'income' | 'transfer'>('all');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const { format: formatCurrency } = usePrivacy();
@@ -127,6 +127,15 @@ export default function TransactionHistory({
             }`}
           >
             Bổ sung 💰
+          </button>
+          <button
+            id="filter-type-transfer-btn"
+            onClick={() => setSelectedType('transfer')}
+            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              selectedType === 'transfer' ? 'bg-white/80 border border-white/50 text-indigo-600 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            Chuyển 🔄
           </button>
         </div>
       </div>
@@ -292,12 +301,18 @@ export default function TransactionHistory({
                   <div className="flex items-start gap-3 min-w-0">
                     {/* Badge Icon based on Type */}
                     <div className={`p-2 rounded-xl shrink-0 ${
-                      tx.type === 'expense' ? 'bg-rose-100/50 text-rose-600' : 'bg-emerald-100/50 text-emerald-600'
+                      tx.type === 'expense'
+                        ? 'bg-rose-100/50 text-rose-600'
+                        : tx.type === 'income'
+                        ? 'bg-emerald-100/50 text-emerald-600'
+                        : 'bg-indigo-100/50 text-indigo-600'
                     }`}>
                       {tx.type === 'expense' ? (
                         <ArrowDownLeft className="w-4 h-4" />
-                      ) : (
+                      ) : tx.type === 'income' ? (
                         <ArrowUpRight className="w-4 h-4" />
+                      ) : (
+                        <ArrowLeftRight className="w-4 h-4" />
                       )}
                     </div>
 
@@ -319,10 +334,18 @@ export default function TransactionHistory({
                       )}
 
                       {/* Source/Fund used */}
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1.5 flex items-center gap-1">
-                        <span>Quỹ:</span>
-                        <span className="text-slate-600 font-sans normal-case">{getFundName(tx.fundId)}</span>
-                      </p>
+                      {tx.type === 'transfer' ? (
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1.5 flex items-center gap-1 flex-wrap">
+                          <span className="text-slate-600 font-sans normal-case">{getFundName(tx.fundId)}</span>
+                          <ArrowLeftRight className="w-3 h-3 text-indigo-500" />
+                          <span className="text-slate-600 font-sans normal-case">{getFundName(tx.toFundId || '')}</span>
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1.5 flex items-center gap-1">
+                          <span>Quỹ:</span>
+                          <span className="text-slate-600 font-sans normal-case">{getFundName(tx.fundId)}</span>
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -354,9 +377,9 @@ export default function TransactionHistory({
                       <>
                         {/* Price display */}
                         <span className={`font-display font-bold text-sm sm:text-base leading-none font-mono ${
-                          tx.type === 'expense' ? 'text-red-500' : 'text-emerald-500'
+                          tx.type === 'expense' ? 'text-red-500' : tx.type === 'income' ? 'text-emerald-500' : 'text-indigo-500'
                         }`}>
-                          {tx.type === 'expense' ? '-' : '+'}
+                          {tx.type === 'expense' ? '-' : tx.type === 'income' ? '+' : ''}
                           {formatCurrency(tx.amount)}
                         </span>
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Fund, CATEGORIES_EXPENSE, CATEGORIES_INCOME, Transaction } from '../types';
-import { MinusCircle, PlusCircle, ArrowUpRight, ArrowDownLeft, Calendar, FileText, CheckCircle } from 'lucide-react';
+import { MinusCircle, PlusCircle, ArrowUpRight, ArrowDownLeft, FileText, CheckCircle, ArrowLeftRight, Repeat } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatCurrency } from '../utils';
 import { usePrivacy } from '../PrivacyContext';
@@ -11,9 +11,10 @@ interface TransactionFormProps {
 }
 
 export default function TransactionForm({ funds, onAddTransaction }: TransactionFormProps) {
-  const [activeTab, setActiveTab] = useState<'expense' | 'income'>('expense');
+  const [activeTab, setActiveTab] = useState<'expense' | 'income' | 'transfer'>('expense');
   const [amount, setAmount] = useState<number>(0);
   const [fundId, setFundId] = useState('');
+  const [toFundId, setToFundId] = useState('');
   const [category, setCategory] = useState('');
   const [customCategory, setCustomCategory] = useState('');
   const [isCustomCategory, setIsCustomCategory] = useState(false);
@@ -26,8 +27,17 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
 
   // Default selected fund if not set
   const selectedFundId = fundId || (funds.length > 0 ? funds[0].id : '');
+  // Quỹ đích cho chuyển quỹ: mặc định là quỹ khác quỹ nguồn
+  const selectedToFundId =
+    toFundId || funds.find((f) => f.id !== selectedFundId)?.id || '';
 
   const categoriesList = activeTab === 'expense' ? CATEGORIES_EXPENSE : CATEGORIES_INCOME;
+
+  // Đảo chiều quỹ nguồn <-> quỹ đích
+  const handleSwapFunds = () => {
+    setFundId(selectedToFundId);
+    setToFundId(selectedFundId);
+  };
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -40,16 +50,30 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
       newErrors.fundId = 'Vui lòng chọn một quỹ tài chính';
     }
 
-    const finalCategory = isCustomCategory ? customCategory.trim() : category;
-    if (!finalCategory) {
-      newErrors.category = 'Vui lòng chọn hoặc nhập mục đích/hạng mục';
-    }
+    // Chế độ chuyển quỹ: kiểm tra quỹ đích và số dư quỹ nguồn
+    if (activeTab === 'transfer') {
+      if (!selectedToFundId) {
+        newErrors.toFundId = 'Vui lòng chọn quỹ nhận tiền';
+      } else if (selectedToFundId === selectedFundId) {
+        newErrors.toFundId = 'Quỹ nhận phải khác quỹ nguồn';
+      }
+      const sourceFund = funds.find((f) => f.id === selectedFundId);
+      if (sourceFund && sourceFund.balance < amount) {
+        newErrors.amount = `Số dư quỹ nguồn không đủ (Hiện có ${formatBalance(sourceFund.balance)})`;
+      }
+    } else {
+      // Chi tiêu / Bổ sung: bắt buộc chọn mục đích/hạng mục
+      const finalCategory = isCustomCategory ? customCategory.trim() : category;
+      if (!finalCategory) {
+        newErrors.category = 'Vui lòng chọn hoặc nhập mục đích/hạng mục';
+      }
 
-    // Check if the expense exceeds the chosen fund's balance
-    if (activeTab === 'expense' && selectedFundId) {
-      const chosenFund = funds.find((f) => f.id === selectedFundId);
-      if (chosenFund && chosenFund.balance < amount) {
-        newErrors.amount = `Số dư quỹ không đủ (Hiện có ${formatBalance(chosenFund.balance)})`;
+      // Check if the expense exceeds the chosen fund's balance
+      if (activeTab === 'expense' && selectedFundId) {
+        const chosenFund = funds.find((f) => f.id === selectedFundId);
+        if (chosenFund && chosenFund.balance < amount) {
+          newErrors.amount = `Số dư quỹ không đủ (Hiện có ${formatBalance(chosenFund.balance)})`;
+        }
       }
     }
 
@@ -61,8 +85,6 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
     e.preventDefault();
     if (!validate()) return;
 
-    const finalCategory = isCustomCategory ? customCategory.trim() : category;
-
     // Get current local date (YYYY-MM-DD)
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -70,21 +92,36 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
     const dd = String(today.getDate()).padStart(2, '0');
     const currentDateStr = `${yyyy}-${mm}-${dd}`;
 
-    onAddTransaction({
-      type: activeTab,
-      amount,
-      fundId: selectedFundId,
-      category: finalCategory,
-      notes: notes.trim(),
-      date: currentDateStr
-    });
+    const sourceName = funds.find((f) => f.id === selectedFundId)?.name;
 
-    // Show beautiful success banner
-    setSuccessMsg(
-      activeTab === 'expense'
-        ? `Đã ghi nhận chi tiêu ${formatCurrency(amount)} từ ${funds.find((f) => f.id === selectedFundId)?.name}`
-        : `Đã bổ sung ${formatCurrency(amount)} vào ${funds.find((f) => f.id === selectedFundId)?.name}`
-    );
+    if (activeTab === 'transfer') {
+      const destName = funds.find((f) => f.id === selectedToFundId)?.name;
+      onAddTransaction({
+        type: 'transfer',
+        amount,
+        fundId: selectedFundId,
+        toFundId: selectedToFundId,
+        category: 'Chuyển quỹ 🔄',
+        notes: notes.trim(),
+        date: currentDateStr
+      });
+      setSuccessMsg(`Đã chuyển ${formatCurrency(amount)} từ ${sourceName} ➡️ ${destName}`);
+    } else {
+      const finalCategory = isCustomCategory ? customCategory.trim() : category;
+      onAddTransaction({
+        type: activeTab,
+        amount,
+        fundId: selectedFundId,
+        category: finalCategory,
+        notes: notes.trim(),
+        date: currentDateStr
+      });
+      setSuccessMsg(
+        activeTab === 'expense'
+          ? `Đã ghi nhận chi tiêu ${formatCurrency(amount)} từ ${sourceName}`
+          : `Đã bổ sung ${formatCurrency(amount)} vào ${sourceName}`
+      );
+    }
 
     // Reset inputs
     setAmount(0);
@@ -103,7 +140,7 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
     <div id="transaction-form-card" className="glass-card rounded-3xl p-6 shadow-xs relative overflow-hidden border border-white/40">
       {/* Decorative colored strip based on active tab */}
       <div className={`absolute top-0 left-0 right-0 h-1.5 transition-colors duration-300 ${
-        activeTab === 'expense' ? 'bg-red-500/80' : 'bg-emerald-500/80'
+        activeTab === 'expense' ? 'bg-red-500/80' : activeTab === 'income' ? 'bg-emerald-500/80' : 'bg-indigo-500/80'
       }`} />
 
       {/* Tabs */}
@@ -117,14 +154,14 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
             setIsCustomCategory(false);
             setErrors({});
           }}
-          className={`flex-1 py-3.5 px-4 rounded-xl font-display font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
+          className={`flex-1 py-3 px-2 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
             activeTab === 'expense'
               ? 'backdrop-blur-md bg-white/80 text-red-600 shadow-xs border border-white/50'
               : 'text-slate-600 hover:text-slate-950'
           }`}
         >
-          <MinusCircle className="w-4 h-4" />
-          <span>Ghi chép Chi Tiêu</span>
+          <MinusCircle className="w-4 h-4 shrink-0" />
+          <span>Chi Tiêu</span>
         </button>
         <button
           id="tab-income-btn"
@@ -135,14 +172,30 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
             setIsCustomCategory(false);
             setErrors({});
           }}
-          className={`flex-1 py-3.5 px-4 rounded-xl font-display font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
+          className={`flex-1 py-3 px-2 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
             activeTab === 'income'
               ? 'backdrop-blur-md bg-white/80 text-emerald-600 shadow-xs border border-white/50'
               : 'text-slate-600 hover:text-slate-950'
           }`}
         >
-          <PlusCircle className="w-4 h-4" />
-          <span>Bổ Sung Tiền</span>
+          <PlusCircle className="w-4 h-4 shrink-0" />
+          <span>Bổ Sung</span>
+        </button>
+        <button
+          id="tab-transfer-btn"
+          type="button"
+          onClick={() => {
+            setActiveTab('transfer');
+            setErrors({});
+          }}
+          className={`flex-1 py-3 px-2 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            activeTab === 'transfer'
+              ? 'backdrop-blur-md bg-white/80 text-indigo-600 shadow-xs border border-white/50'
+              : 'text-slate-600 hover:text-slate-950'
+          }`}
+        >
+          <ArrowLeftRight className="w-4 h-4 shrink-0" />
+          <span>Chuyển Quỹ</span>
         </button>
       </div>
 
@@ -166,6 +219,10 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
         <div className="text-center py-8 text-slate-500">
           <p className="text-sm font-semibold">Vui lòng tạo ít nhất 1 quỹ tài chính trước khi thực hiện ghi chép.</p>
         </div>
+      ) : activeTab === 'transfer' && funds.length < 2 ? (
+        <div className="text-center py-8 text-slate-500">
+          <p className="text-sm font-semibold">Cần có ít nhất 2 quỹ để chuyển tiền qua lại. Hãy tạo thêm một quỹ nữa nhé!</p>
+        </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Amount input */}
@@ -187,7 +244,7 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
                     ? 'border-red-400 focus:ring-red-100 bg-red-50/10'
                     : 'border-white/60 focus:border-slate-400 focus:ring-indigo-100/30'
                 } outline-hidden focus:ring-4 transition-all ${
-                  activeTab === 'expense' ? 'text-red-600' : 'text-emerald-600'
+                  activeTab === 'expense' ? 'text-red-600' : activeTab === 'income' ? 'text-emerald-600' : 'text-indigo-600'
                 }`}
               />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">
@@ -205,28 +262,92 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
           </div>
 
           {/* Fund selection */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-              {activeTab === 'expense' ? 'Trích từ Quỹ nào' : 'Bổ sung vào Quỹ nào'}
-            </label>
-            <select
-              id="tx-fund-select"
-              value={selectedFundId}
-              onChange={(e) => setFundId(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border glass-input border-white/60 focus:border-indigo-400 outline-hidden focus:ring-4 focus:ring-indigo-100/30 transition-all text-sm font-medium text-slate-800 bg-white"
-            >
-              {funds.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name} ({formatBalance(f.balance)})
-                </option>
-              ))}
-            </select>
-            {errors.fundId && (
-              <p className="text-red-500 text-xs mt-1 font-semibold">{errors.fundId}</p>
-            )}
-          </div>
+          {activeTab === 'transfer' ? (
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                Chuyển tiền giữa các quỹ
+              </label>
+              <div className="space-y-2">
+                {/* Quỹ nguồn */}
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Từ quỹ (trích ra)</span>
+                  <select
+                    id="tx-from-fund-select"
+                    value={selectedFundId}
+                    onChange={(e) => setFundId(e.target.value)}
+                    className="w-full mt-1 px-3.5 py-2.5 rounded-xl border glass-input border-white/60 focus:border-indigo-400 outline-hidden focus:ring-4 focus:ring-indigo-100/30 transition-all text-sm font-medium text-slate-800 bg-white"
+                  >
+                    {funds.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.name} ({formatBalance(f.balance)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-          {/* Purpose / Category */}
+                {/* Nút đảo chiều */}
+                <div className="flex justify-center">
+                  <button
+                    id="tx-swap-funds-btn"
+                    type="button"
+                    onClick={handleSwapFunds}
+                    className="p-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-600 rounded-full transition-all cursor-pointer shadow-2xs hover:rotate-180 duration-300"
+                    title="Đảo chiều quỹ nguồn và quỹ đích"
+                  >
+                    <Repeat className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Quỹ đích */}
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Đến quỹ (nhận vào)</span>
+                  <select
+                    id="tx-to-fund-select"
+                    value={selectedToFundId}
+                    onChange={(e) => setToFundId(e.target.value)}
+                    className={`w-full mt-1 px-3.5 py-2.5 rounded-xl border glass-input ${
+                      errors.toFundId ? 'border-red-400 focus:ring-red-100' : 'border-white/60 focus:border-indigo-400 focus:ring-indigo-100/30'
+                    } outline-hidden focus:ring-4 transition-all text-sm font-medium text-slate-800 bg-white`}
+                  >
+                    {funds
+                      .filter((f) => f.id !== selectedFundId)
+                      .map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name} ({formatBalance(f.balance)})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+              {errors.toFundId && (
+                <p className="text-red-500 text-xs mt-1 font-semibold">{errors.toFundId}</p>
+              )}
+            </div>
+          ) : (
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                {activeTab === 'expense' ? 'Trích từ Quỹ nào' : 'Bổ sung vào Quỹ nào'}
+              </label>
+              <select
+                id="tx-fund-select"
+                value={selectedFundId}
+                onChange={(e) => setFundId(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border glass-input border-white/60 focus:border-indigo-400 outline-hidden focus:ring-4 focus:ring-indigo-100/30 transition-all text-sm font-medium text-slate-800 bg-white"
+              >
+                {funds.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name} ({formatBalance(f.balance)})
+                  </option>
+                ))}
+              </select>
+              {errors.fundId && (
+                <p className="text-red-500 text-xs mt-1 font-semibold">{errors.fundId}</p>
+              )}
+            </div>
+          )}
+
+          {/* Purpose / Category (không áp dụng cho chuyển quỹ) */}
+          {activeTab !== 'transfer' && (
           <div>
             <div className="flex justify-between items-center mb-1.5">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -290,6 +411,7 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
               <p className="text-red-500 text-xs mt-1 font-semibold">{errors.category}</p>
             )}
           </div>
+          )}
 
           {/* Notes (Ghi chú rõ nguồn tiền/mục đích cụ thể) */}
           <div>
@@ -302,7 +424,9 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
               placeholder={
                 activeTab === 'expense'
                   ? 'Ghi cụ thể chi tiêu cho việc gì (Ví dụ: Ăn bún chả với đồng nghiệp, mua sắm đồ dùng học tập...)'
-                  : 'Ghi cụ thể nguồn tiền từ đâu (Ví dụ: Tiền thưởng hoàn thành dự án, bố mẹ gửi hỗ trợ...)'
+                  : activeTab === 'income'
+                  ? 'Ghi cụ thể nguồn tiền từ đâu (Ví dụ: Tiền thưởng hoàn thành dự án, bố mẹ gửi hỗ trợ...)'
+                  : 'Lý do phân bổ (Ví dụ: Trích lương vào quỹ tiết kiệm, dồn tiền mua laptop...)'
               }
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -317,7 +441,9 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
             className={`w-full py-3.5 rounded-2xl font-display font-bold text-sm text-white flex items-center justify-center gap-2 cursor-pointer shadow-xs transition-all duration-300 ${
               activeTab === 'expense'
                 ? 'bg-red-600 hover:bg-red-700 hover:shadow-md hover:shadow-red-50 focus:ring-4 focus:ring-red-100'
-                : 'bg-emerald-600 hover:bg-emerald-700 hover:shadow-md hover:shadow-emerald-50 focus:ring-4 focus:ring-emerald-100'
+                : activeTab === 'income'
+                ? 'bg-emerald-600 hover:bg-emerald-700 hover:shadow-md hover:shadow-emerald-50 focus:ring-4 focus:ring-emerald-100'
+                : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-md hover:shadow-indigo-50 focus:ring-4 focus:ring-indigo-100'
             }`}
           >
             {activeTab === 'expense' ? (
@@ -325,10 +451,15 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
                 <ArrowDownLeft className="w-4 h-4" />
                 <span>Ghi Nhận Khoản Chi Tiêu</span>
               </>
-            ) : (
+            ) : activeTab === 'income' ? (
               <>
                 <ArrowUpRight className="w-4 h-4" />
                 <span>Hoàn Tất Bổ Sung Tiền</span>
+              </>
+            ) : (
+              <>
+                <ArrowLeftRight className="w-4 h-4" />
+                <span>Xác Nhận Chuyển Quỹ</span>
               </>
             )}
           </button>

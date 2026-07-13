@@ -25,9 +25,10 @@ export function calculateMonthlyReports(
     }
     if (tx.type === 'income') {
       reportsMap[month].income += tx.amount;
-    } else {
+    } else if (tx.type === 'expense') {
       reportsMap[month].expense += tx.amount;
     }
+    // Bỏ qua giao dịch chuyển quỹ (transfer) vì không phải thu/chi thực sự
   });
 
   // Ensure current and previous months exist for MoM calculation even if empty
