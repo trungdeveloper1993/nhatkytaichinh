@@ -168,15 +168,37 @@ export default function App() {
   };
 
   // Export toàn bộ dữ liệu (quỹ + giao dịch) ra file CSV để sao lưu
-  const handleExportCsv = () => {
+  const handleExportCsv = async () => {
     const csv = exportToCsv(funds, transactions);
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    const csvContent = '﻿' + csv; // BOM để Excel đọc đúng tiếng Việt
     const now = new Date();
     const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    const filename = `nhat-ky-tai-chinh-${stamp}.csv`;
+
+    // iOS/Safari: dùng Web Share API để hiện bảng chia sẻ ("Lưu vào Tệp", AirDrop...)
+    // vì thẻ <a download> không tải được file về thư mục trên iPhone.
+    try {
+      const file = new File([csvContent], filename, { type: 'text/csv' });
+      const nav = navigator as Navigator & {
+        canShare?: (data?: ShareData) => boolean;
+        share?: (data?: ShareData) => Promise<void>;
+      };
+      if (nav.canShare && nav.share && nav.canShare({ files: [file] })) {
+        await nav.share({ files: [file], title: filename });
+        return;
+      }
+    } catch (err) {
+      // Người dùng bấm Hủy trên bảng chia sẻ -> dừng, không tải lại
+      if (err instanceof Error && err.name === 'AbortError') return;
+      // Lỗi khác (không hỗ trợ) -> rơi xuống cách tải thông thường bên dưới
+    }
+
+    // Fallback (desktop/Android): tải xuống bằng thẻ <a download>
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `nhat-ky-tai-chinh-${stamp}.csv`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
