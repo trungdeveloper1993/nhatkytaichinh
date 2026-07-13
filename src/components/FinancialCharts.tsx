@@ -52,9 +52,10 @@ export default function FinancialCharts({ transactions, funds }: FinancialCharts
       .forEach((tx) => {
         if (tx.type === 'income') {
           income += tx.amount;
-        } else {
+        } else if (tx.type === 'expense') {
           expense += tx.amount;
         }
+        // Bỏ qua giao dịch chuyển quỹ (transfer)
       });
 
     return { income, expense, balance: income - expense };

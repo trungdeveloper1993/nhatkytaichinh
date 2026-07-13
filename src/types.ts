@@ -15,9 +15,10 @@ export interface Fund {
 
 export interface Transaction {
   id: string;
-  type: 'expense' | 'income';
+  type: 'expense' | 'income' | 'transfer';
   amount: number;
-  fundId: string;
+  fundId: string; // với transfer: quỹ nguồn (trích tiền ra)
+  toFundId?: string; // với transfer: quỹ đích (nhận tiền vào)
   category: string; // mục đích/hạng mục chi tiêu hoặc nguồn tiền
   notes?: string;
   date: string; // YYYY-MM-DD
