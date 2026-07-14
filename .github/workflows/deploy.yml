@@ -40,6 +40,10 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
+        with:
+          # Tự động bật GitHub Pages (nguồn = GitHub Actions) nếu chưa bật,
+          # tránh lỗi "Get Pages site failed / Not Found" gây 404.
+          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
