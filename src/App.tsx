@@ -15,15 +15,6 @@ import { usePrivacy } from './PrivacyContext';
 const LOCAL_STORAGE_FUNDS_KEY = 'nhat_ky_tai_chinh_funds';
 const LOCAL_STORAGE_TX_KEY = 'nhat_ky_tai_chinh_transactions';
 
-// Bộ ứng dụng liên quan (đánh dấu current cho app đang xem)
-const RELATED_APPS = [
-  { name: 'Mua Bán BTC', emoji: '₿', url: 'https://muabanbtc.vercel.app/', current: false },
-  { name: 'Mua Bán Nông Sản', emoji: '🌾', url: 'https://muabannongsan.vercel.app/', current: false },
-  { name: 'Giá Vàng', emoji: '🥇', url: 'https://giavang-six.vercel.app/', current: false },
-  { name: 'Web Nấu Ăn', emoji: '🍳', url: 'https://webnauan.vercel.app/', current: false },
-  { name: 'Nhật Ký Tài Chính', emoji: '💰', url: 'https://nhatkytaichinh.vercel.app/', current: true },
-];
-
 export default function App() {
   const [funds, setFunds] = useState<Fund[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -543,34 +534,6 @@ export default function App() {
 
       {/* FOOTER */}
       <footer id="main-footer" className="bg-white border-t border-slate-200 mt-16 py-8 px-4 text-center text-xs text-slate-400 font-medium">
-        {/* Liên kết các ứng dụng khác */}
-        <nav id="app-links" className="max-w-2xl mx-auto mb-5">
-          <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2.5">Các ứng dụng khác</p>
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {RELATED_APPS.map((app) =>
-              app.current ? (
-                <span
-                  key={app.url}
-                  aria-current="page"
-                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-2xs cursor-default"
-                >
-                  {app.emoji} {app.name}
-                </span>
-              ) : (
-                <a
-                  key={app.url}
-                  href={app.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-slate-600 hover:text-indigo-700 transition-all cursor-pointer"
-                >
-                  {app.emoji} {app.name}
-                </a>
-              )
-            )}
-          </div>
-        </nav>
-
         <p className="max-w-2xl mx-auto leading-relaxed">
           Lưu ý nhỏ nè ❤️ Nhật ký được lưu ngay trên trình duyệt của bạn. Vì vậy đừng xóa dữ liệu duyệt web (lịch sử / cache) và lưu ý khi đổi máy hoặc đổi trình duyệt — nếu không bạn có thể bị mất toàn bộ nhật ký đã ghi. Hãy giữ gìn cẩn thận nha!
         </p>
