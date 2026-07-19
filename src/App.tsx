@@ -260,11 +260,21 @@ export default function App() {
     return { totalAssets, cashAssets, bankAssets };
   }, [funds]);
 
-  // Danh sách quỹ sắp xếp theo bảng chữ cái (tiếng Việt) để hiển thị
+  // Danh sách quỹ: quỹ ghim lên đầu, còn lại sắp theo bảng chữ cái (tiếng Việt)
   const sortedFunds = useMemo(
-    () => [...funds].sort((a, b) => a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' })),
+    () =>
+      [...funds].sort(
+        (a, b) =>
+          (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) ||
+          a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' })
+      ),
     [funds]
   );
+
+  // Ghim / bỏ ghim một quỹ
+  const handleTogglePin = (fund: Fund) => {
+    handleEditFund({ ...fund, pinned: !fund.pinned });
+  };
 
   if (!isLoaded) {
     return (
@@ -486,6 +496,7 @@ export default function App() {
                           onDelete={handleDeleteFund}
                           onEdit={(f) => setEditingFund(f)}
                           onOpenManagement={(f) => setManagementFund(f)}
+                          onTogglePin={handleTogglePin}
                           canDelete={funds.length > 1}
                           currentMonthSpent={currentMonthSpent}
                         />
