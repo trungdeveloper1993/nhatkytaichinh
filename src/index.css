@@ -7,6 +7,13 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
+/* Tắt double-tap zoom trên mobile (kết hợp với viewport user-scalable=no) */
+html {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 /* Frosted Glass Utilities */
 .glass-bg {
   background: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 50%, #fee2e2 100%);
