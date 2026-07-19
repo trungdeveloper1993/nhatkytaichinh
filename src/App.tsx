@@ -8,7 +8,8 @@ import EditFundModal from './components/EditFundModal';
 import TransactionForm from './components/TransactionForm';
 import FinancialCharts from './components/FinancialCharts';
 import TransactionHistory from './components/TransactionHistory';
-import { Wallet, Landmark, Landmark as BankIcon, CircleDollarSign, Plus, CheckCircle2, Layers, History, BarChart3, Eye, EyeOff, Download, Upload } from 'lucide-react';
+import AllocationPlanner from './components/AllocationPlanner';
+import { Wallet, Landmark, Landmark as BankIcon, CircleDollarSign, Plus, CheckCircle2, Layers, History, BarChart3, Eye, EyeOff, Download, Upload, PieChart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePrivacy } from './PrivacyContext';
 
@@ -19,7 +20,7 @@ export default function App() {
   const [funds, setFunds] = useState<Fund[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [activeTab, setActiveTab] = useState<'funds' | 'transactions' | 'reports'>('funds');
+  const [activeTab, setActiveTab] = useState<'funds' | 'transactions' | 'allocation' | 'reports'>('funds');
   const [editingFund, setEditingFund] = useState<Fund | null>(null);
   const { hidden, toggle, format } = usePrivacy();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -402,6 +403,21 @@ export default function App() {
           </button>
 
           <button
+            onClick={() => setActiveTab('allocation')}
+            className="flex-1 py-3 px-4 rounded-xl font-display font-bold text-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer relative"
+          >
+            {activeTab === 'allocation' && (
+              <motion.div
+                layoutId="active-main-tab"
+                className="absolute inset-0 bg-white/80 border border-white/50 rounded-xl shadow-xs"
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
+              />
+            )}
+            <PieChart className={`w-4 h-4 z-10 ${activeTab === 'allocation' ? 'text-indigo-600' : 'text-slate-500'}`} />
+            <span className={`z-10 text-xs sm:text-sm ${activeTab === 'allocation' ? 'text-indigo-950 font-black' : 'text-slate-600 font-semibold'}`}>Phân Bổ</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('reports')}
             className="flex-1 py-3 px-4 rounded-xl font-display font-bold text-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer relative"
           >
@@ -502,6 +518,22 @@ export default function App() {
                     onClearTransactions={handleClearTransactions}
                   />
                 </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'allocation' && (
+              <motion.div
+                key="allocation-tab"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.2 }}
+              >
+                <AllocationPlanner
+                  funds={funds}
+                  transactions={transactions}
+                  onUpdateFund={handleEditFund}
+                />
               </motion.div>
             )}
 
