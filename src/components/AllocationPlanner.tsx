@@ -46,8 +46,12 @@ export default function AllocationPlanner({ funds, transactions, onUpdateFund }:
   const rows = allocatableFunds.map((f) => {
     const percent = f.allocationPercent ?? 0;
     const included = ticked[f.id] ?? false;
-    const amount = included ? Math.round((distributable * percent) / 100) : 0;
-    return { fund: f, percent, included, amount };
+    const raw = included ? Math.round((distributable * percent) / 100) : 0;
+    // Tôn trọng trần quỹ: không gợi ý vượt quá số dư tối đa
+    const room = f.maxBalance ? Math.max(0, f.maxBalance - f.balance) : Infinity;
+    const amount = Math.min(raw, room);
+    const capped = raw > amount; // bị giới hạn bởi trần quỹ
+    return { fund: f, percent, included, amount, capped };
   });
 
   const totalPercentTicked = rows.filter((r) => r.included).reduce((s, r) => s + r.percent, 0);
@@ -161,7 +165,7 @@ export default function AllocationPlanner({ funds, transactions, onUpdateFund }:
             </div>
 
             <div className="divide-y divide-white/30">
-              {rows.map(({ fund, percent, included, amount }) => {
+              {rows.map(({ fund, percent, included, amount, capped }) => {
                 const clr = colorOf(fund);
                 return (
                   <div
@@ -203,6 +207,9 @@ export default function AllocationPlanner({ funds, transactions, onUpdateFund }:
                       <span className={`text-sm font-display font-bold font-mono ${included ? 'text-indigo-600' : 'text-slate-300'}`}>
                         {included ? formatMasked(amount) : '—'}
                       </span>
+                      {included && capped && (
+                        <p className="text-[10px] text-amber-600 font-bold">🔒 chạm trần quỹ</p>
+                      )}
                     </div>
                   </div>
                 );
