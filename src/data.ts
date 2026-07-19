@@ -26,7 +26,7 @@ export const INITIAL_FUNDS: Fund[] = [
     color: 'indigo',
     allocationPercent: 30,
     managementMethod:
-      '- Được phân bổ vốn từ các nguồn thu nhập.\n- Chi vốn ra để đầu tư sinh lời qua chứng khoán, crypto, bất động sản, kinh doanh...\n- Tiền lời hàng tháng phân bổ lại: 70% Tiết Kiệm, 15% Khẩn Cấp, 10% Ước Mơ, 5% Từ Thiện, 5% Dự Phòng.\n- Khi đạt ngưỡng mục tiêu: giữ phần lớn tiền lời để tăng vốn; sau đó chuyển hướng sang Ước Mơ, Khẩn Cấp, Dự Phòng và mua vàng.\n- Nếu vốn đang âm: tiền lời cộng dồn vào vốn để duy trì.',
+      '- Được phân bổ vốn từ các nguồn thu nhập.\n- Chi vốn ra để đầu tư sinh lời qua chứng khoán, crypto, bất động sản, kinh doanh...',
     createdAt: new Date().toISOString()
   },
   {
@@ -50,7 +50,7 @@ export const INITIAL_FUNDS: Fund[] = [
     color: 'rose',
     allocationPercent: 10,
     managementMethod:
-      '- Được cấp vốn từ thu nhập, tiền lời Quỹ Đầu Tư và phần dư của các quỹ khác. Không giới hạn bổ sung.\n- Khi số dư trên 100 triệu: gửi tiết kiệm kỳ hạn 1/3/6 tháng xoay vòng 80%, giữ 20% sẵn sàng dùng khi cần.',
+      '- Được phân bổ từ mọi nguồn thu nhập; quỹ càng nhiều càng có tài chính đề phòng khi khẩn cấp.\n- Khi số dư trên 100 triệu: gửi tiết kiệm kỳ hạn 1/3/6 tháng xoay vòng 80%, giữ 20% sẵn sàng dùng khi cần.',
     createdAt: new Date().toISOString()
   },
   {
@@ -64,7 +64,7 @@ export const INITIAL_FUNDS: Fund[] = [
     monthlyLimit: 4000000,
     maxBalance: 20000000,
     managementMethod:
-      '- Nhận tối đa mỗi tháng theo giới hạn phân bổ đã đặt (mặc định 4 triệu).\n- Được cấp vốn từ mọi nguồn phân bổ thu nhập.\n- Xài dư được cộng dồn sang tháng sau, tối đa tới trần quỹ (20 triệu).\n- Khi đạt/vượt trần, phần chênh lệch được chuyển sang Quỹ Khẩn Cấp.',
+      '- Nhận tối đa mỗi tháng theo giới hạn phân bổ đã đặt.\n- Được cấp vốn từ mọi nguồn phân bổ thu nhập.\n- Xài dư được cộng dồn sang tháng sau, tối đa tới trần quỹ đã đặt.\n- Khi đạt/vượt trần, phần chênh lệch được chuyển sang Quỹ Khẩn Cấp.',
     createdAt: new Date().toISOString()
   },
   {
@@ -100,7 +100,7 @@ export const INITIAL_FUNDS: Fund[] = [
     color: 'emerald',
     allocationPercent: 5,
     managementMethod:
-      '- Được cấp vốn 5% từ mọi khoản thu nhập và 5% từ tiền lời Quỹ Đầu Tư.\n- Chỉ dùng cho nhu cầu thiết yếu của nhà cửa, tránh chi tiêu tùy hứng.',
+      '- Được cấp vốn 5% từ mọi khoản thu nhập.\n- Chỉ dùng cho nhu cầu thiết yếu của nhà cửa, tránh chi tiêu tùy hứng.',
     createdAt: new Date().toISOString()
   }
 ];
