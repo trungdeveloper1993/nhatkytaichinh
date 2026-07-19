@@ -18,6 +18,7 @@ export default function FundForm({ onAddFund }: FundFormProps) {
   const [color, setColor] = useState('emerald');
   const [hasLimit, setHasLimit] = useState(false);
   const [limitAmount, setLimitAmount] = useState<number>(0);
+  const [allocationPercent, setAllocationPercent] = useState<number>(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
@@ -44,6 +45,10 @@ export default function FundForm({ onAddFund }: FundFormProps) {
       newErrors.limitAmount = 'Hạn mức chi tiêu hàng tháng phải lớn hơn 0';
     }
 
+    if (allocationPercent < 0 || allocationPercent > 100) {
+      newErrors.allocationPercent = 'Tỷ lệ phân bổ phải từ 0 đến 100%';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -60,7 +65,8 @@ export default function FundForm({ onAddFund }: FundFormProps) {
       bankName: type === 'bank' ? bankName.trim() : undefined,
       note: note.trim() ? note.trim() : undefined,
       color,
-      monthlyLimit: hasLimit ? limitAmount : undefined
+      monthlyLimit: hasLimit ? limitAmount : undefined,
+      allocationPercent: allocationPercent > 0 ? allocationPercent : undefined
     });
 
     // Reset Form
@@ -73,6 +79,7 @@ export default function FundForm({ onAddFund }: FundFormProps) {
     setColor('emerald');
     setHasLimit(false);
     setLimitAmount(0);
+    setAllocationPercent(0);
     setIsOpen(false);
     setErrors({});
   };
@@ -302,6 +309,29 @@ export default function FundForm({ onAddFund }: FundFormProps) {
                     )}
                   </motion.div>
                 )}
+              </div>
+
+              {/* Tỷ lệ phân bổ thu nhập */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Tỷ lệ phân bổ thu nhập <span className="normal-case font-medium text-slate-400">(% mỗi tháng, tùy chọn)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    id="fund-allocation-percent-input"
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="Ví dụ: 10"
+                    value={allocationPercent === 0 ? '' : allocationPercent}
+                    onChange={(e) => setAllocationPercent(Number(e.target.value))}
+                    className={`w-full pl-3.5 pr-10 py-2.5 rounded-xl border glass-input ${
+                      errors.allocationPercent ? 'border-red-400 focus:ring-red-100' : 'border-white/60 focus:border-indigo-400 focus:ring-indigo-100/50'
+                    } outline-hidden focus:ring-4 transition-all text-sm text-slate-800 font-semibold font-mono`}
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">%</span>
+                </div>
+                {errors.allocationPercent && <p className="text-red-500 text-xs mt-1 font-medium">{errors.allocationPercent}</p>}
               </div>
 
               <div>
