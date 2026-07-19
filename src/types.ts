@@ -14,6 +14,7 @@ export interface Fund {
   allocationPercent?: number; // % thu nhập gợi ý phân bổ vào quỹ này (0-100)
   isSpending?: boolean; // Quỹ tiêu dùng: không hiện trong danh sách phân bổ
   managementMethod?: string; // Cách quản lý & gợi ý phân bổ chi tiết cho quỹ
+  pinned?: boolean; // Ghim quỹ để hiện lên đầu danh sách
   createdAt: string;
 }
 

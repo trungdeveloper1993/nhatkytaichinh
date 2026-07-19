@@ -16,6 +16,7 @@ const COLUMNS = [
   'maxBalance',
   'allocationPercent',
   'isSpending',
+  'pinned',
   'managementMethod',
   'createdAt',
   'amount',
@@ -56,6 +57,7 @@ export function exportToCsv(funds: Fund[], transactions: Transaction[]): string 
       maxBalance: f.maxBalance,
       allocationPercent: f.allocationPercent,
       isSpending: f.isSpending ? 'true' : '',
+      pinned: f.pinned ? 'true' : '',
       managementMethod: f.managementMethod,
       createdAt: f.createdAt,
     };
@@ -182,6 +184,7 @@ export function parseCsv(text: string): { funds: Fund[]; transactions: Transacti
         maxBalance: maxBalanceStr ? Number(maxBalanceStr) : undefined,
         allocationPercent: allocationStr ? Number(allocationStr) : undefined,
         isSpending: get('isSpending') === 'true' ? true : undefined,
+        pinned: get('pinned') === 'true' ? true : undefined,
         managementMethod: get('managementMethod') || undefined,
         createdAt: get('createdAt') || new Date().toISOString(),
       });

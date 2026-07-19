@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Fund, FUND_COLORS } from '../types';
 import { usePrivacy, formatAmount } from '../PrivacyContext';
-import { Wallet, Landmark, Copy, Check, Trash2, Edit3, Eye, EyeOff, ClipboardList } from 'lucide-react';
+import { Wallet, Landmark, Copy, Check, Trash2, Edit3, Eye, EyeOff, ClipboardList, Pin } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface FundCardProps {
@@ -10,11 +10,12 @@ interface FundCardProps {
   onDelete?: (fundId: string) => void;
   onEdit?: (fund: Fund) => void;
   onOpenManagement?: (fund: Fund) => void;
+  onTogglePin?: (fund: Fund) => void;
   canDelete: boolean;
   currentMonthSpent?: number;
 }
 
-export default function FundCard({ fund, onDelete, onEdit, onOpenManagement, canDelete, currentMonthSpent = 0 }: FundCardProps) {
+export default function FundCard({ fund, onDelete, onEdit, onOpenManagement, onTogglePin, canDelete, currentMonthSpent = 0 }: FundCardProps) {
   const [copied, setCopied] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const { hidden: globalHidden } = usePrivacy();
@@ -67,7 +68,9 @@ export default function FundCard({ fund, onDelete, onEdit, onOpenManagement, can
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.25 }}
-      className={`group relative p-5 rounded-2xl border transition-all duration-300 shadow-xs hover:shadow-md flex flex-col justify-between overflow-hidden backdrop-blur-md bg-opacity-60 border-white/40 ${colorScheme.bg}`}
+      className={`group relative p-5 rounded-2xl border transition-all duration-300 shadow-xs hover:shadow-md flex flex-col justify-between overflow-hidden backdrop-blur-md bg-opacity-60 ${
+        fund.pinned ? 'border-indigo-300 ring-2 ring-indigo-200/60' : 'border-white/40'
+      } ${colorScheme.bg}`}
     >
       {/* Custom Confirmation Overlay */}
       {showConfirm && (
@@ -115,6 +118,24 @@ export default function FundCard({ fund, onDelete, onEdit, onOpenManagement, can
           </div>
 
           <div className="flex items-center gap-1.5 relative z-10">
+            {onTogglePin && (
+              <button
+                id={`pin-fund-btn-${fund.id}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTogglePin(fund);
+                }}
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                  fund.pinned
+                    ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'
+                    : 'text-slate-400 hover:bg-white/90 hover:text-indigo-600'
+                }`}
+                title={fund.pinned ? 'Bỏ ghim quỹ' : 'Ghim quỹ lên đầu'}
+              >
+                <Pin className={`w-4 h-4 ${fund.pinned ? 'fill-indigo-600' : ''}`} />
+              </button>
+            )}
+
             <button
               id={`toggle-fund-privacy-btn-${fund.id}`}
               onClick={(e) => {
