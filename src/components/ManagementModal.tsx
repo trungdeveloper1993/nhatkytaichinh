@@ -65,7 +65,7 @@ export default function ManagementModal({ fund, onClose, onSave }: ManagementMod
           </div>
 
           {/* Gợi ý phân bổ */}
-          {(fund.allocationPercent || fund.isSpending || fund.monthlyLimit) && (
+          {(fund.allocationPercent || fund.isSpending || fund.monthlyLimit || fund.maxBalance) && (
             <div className="mb-3 flex flex-wrap gap-2">
               {fund.allocationPercent ? (
                 <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
@@ -79,7 +79,12 @@ export default function ManagementModal({ fund, onClose, onSave }: ManagementMod
               )}
               {fund.monthlyLimit ? (
                 <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-50 text-slate-600 border border-slate-200 font-mono">
-                  Giới hạn: {fund.monthlyLimit.toLocaleString('vi-VN')} ₫
+                  Giới hạn/tháng: {fund.monthlyLimit.toLocaleString('vi-VN')} ₫
+                </span>
+              ) : null}
+              {fund.maxBalance ? (
+                <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-50 text-slate-600 border border-slate-200 font-mono">
+                  Trần quỹ: {fund.maxBalance.toLocaleString('vi-VN')} ₫
                 </span>
               ) : null}
             </div>
