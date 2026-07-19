@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Fund, CATEGORIES_EXPENSE, CATEGORIES_INCOME, Transaction } from '../types';
-import { MinusCircle, PlusCircle, ArrowUpRight, ArrowDownLeft, FileText, CheckCircle, ArrowLeftRight, Repeat } from 'lucide-react';
+import { MinusCircle, PlusCircle, ArrowUpRight, ArrowDownLeft, FileText, ArrowLeftRight, Repeat } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatCurrency } from '../utils';
 import { usePrivacy } from '../PrivacyContext';
+import { useToast } from '../ToastContext';
 
 interface TransactionFormProps {
   funds: Fund[];
@@ -21,9 +22,9 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
   const [notes, setNotes] = useState('');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [successMsg, setSuccessMsg] = useState('');
   // Che số dư quỹ (số tiền đang có) khi bật chế độ riêng tư
   const { format: formatBalance } = usePrivacy();
+  const { notify } = useToast();
 
   // Default selected fund if not set
   const selectedFundId = fundId || (funds.length > 0 ? funds[0].id : '');
@@ -126,7 +127,7 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
         notes: notes.trim(),
         date: currentDateStr
       });
-      setSuccessMsg(`Đã chuyển ${formatCurrency(amount)} từ ${sourceName} ➡️ ${destName}`);
+      notify(`Đã chuyển ${formatCurrency(amount)} từ ${sourceName} ➡️ ${destName}`, 'success');
     } else {
       const finalCategory = isCustomCategory ? customCategory.trim() : category;
       onAddTransaction({
@@ -137,10 +138,11 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
         notes: notes.trim(),
         date: currentDateStr
       });
-      setSuccessMsg(
+      notify(
         activeTab === 'expense'
           ? `Đã ghi nhận chi tiêu ${formatCurrency(amount)} từ ${sourceName}`
-          : `Đã bổ sung ${formatCurrency(amount)} vào ${sourceName}`
+          : `Đã bổ sung ${formatCurrency(amount)} vào ${sourceName}`,
+        'success'
       );
     }
 
@@ -151,10 +153,6 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
     setIsCustomCategory(false);
     setNotes('');
     setErrors({});
-
-    setTimeout(() => {
-      setSuccessMsg('');
-    }, 4000);
   };
 
   return (
@@ -219,22 +217,6 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
           <span>Chuyển Quỹ</span>
         </button>
       </div>
-
-      {/* Success feedback overlay */}
-      <AnimatePresence>
-        {successMsg && (
-          <motion.div
-            id="transaction-success-alert"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="mb-4 p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2 font-medium"
-          >
-            <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>{successMsg}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {funds.length === 0 ? (
         <div className="text-center py-8 text-slate-500">

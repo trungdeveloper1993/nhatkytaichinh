@@ -13,6 +13,8 @@ import AllocationPlanner from './components/AllocationPlanner';
 import { Wallet, Landmark, Landmark as BankIcon, CircleDollarSign, Plus, CheckCircle2, Layers, History, BarChart3, Eye, EyeOff, Download, Upload, PieChart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePrivacy } from './PrivacyContext';
+import { useToast } from './ToastContext';
+import { formatCurrency } from './utils';
 
 const LOCAL_STORAGE_FUNDS_KEY = 'nhat_ky_tai_chinh_funds';
 const LOCAL_STORAGE_TX_KEY = 'nhat_ky_tai_chinh_transactions';
@@ -25,6 +27,7 @@ export default function App() {
   const [editingFund, setEditingFund] = useState<Fund | null>(null);
   const [managementFund, setManagementFund] = useState<Fund | null>(null);
   const { hidden, toggle, format } = usePrivacy();
+  const { notify } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentMonthPrefix = useMemo(() => {
@@ -162,12 +165,15 @@ export default function App() {
     setFunds(nextFunds);
     setTransactions(nextTx);
     saveState(nextFunds, nextTx);
+    notify(`Đã xóa giao dịch "${targetTx.category}" (${formatCurrency(targetTx.amount)}) và hoàn lại số dư`, 'info');
   };
 
   // Clear all transaction logs without affecting or reverting the fund balances
   const handleClearTransactions = () => {
+    const count = transactions.length;
     setTransactions([]);
     saveState(funds, []);
+    notify(`Đã dọn dẹp ${count} dòng nhật ký giao dịch`, 'info');
   };
 
   // Export toàn bộ dữ liệu (quỹ + giao dịch) ra file CSV để sao lưu
