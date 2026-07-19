@@ -4,6 +4,8 @@ import { formatCurrency } from '../utils';
 import { PieChart, Wallet, RefreshCw, Sparkles, Info } from 'lucide-react';
 import { motion } from 'motion/react';
 
+const LS_ALLOC_INCOME = 'nhat_ky_tai_chinh_alloc_income';
+
 interface AllocationPlannerProps {
   funds: Fund[];
   transactions: Transaction[];
@@ -30,7 +32,19 @@ export default function AllocationPlanner({ funds, transactions, onUpdateFund }:
   // Tổng giới hạn của các quỹ tiêu dùng (dùng làm số giữ lại tiêu dùng mặc định)
   const spendingLimit = spendingFunds.reduce((s, f) => s + (f.monthlyLimit ?? 0), 0);
 
-  const [income, setIncome] = useState<number>(currentMonthIncome);
+  // Tổng thu nhập tháng: lưu lại giá trị đã nhập, dùng lại lần sau (không reset)
+  const [income, setIncomeState] = useState<number>(() => {
+    const saved = localStorage.getItem(LS_ALLOC_INCOME);
+    if (saved !== null && saved !== '') {
+      const n = Number(saved);
+      if (!Number.isNaN(n)) return n;
+    }
+    return currentMonthIncome;
+  });
+  const setIncome = (value: number) => {
+    setIncomeState(value);
+    localStorage.setItem(LS_ALLOC_INCOME, String(value));
+  };
   const [consumption, setConsumption] = useState<number>(spendingLimit);
   const [ticked, setTicked] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
