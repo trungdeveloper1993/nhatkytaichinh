@@ -76,7 +76,7 @@ export const INITIAL_FUNDS: Fund[] = [
     color: 'amber',
     allocationPercent: 10,
     managementMethod:
-      '- Được cấp vốn tới 50% từ tiền lời Quỹ Đầu Tư sau khi Tiết Kiệm và Đầu Tư đạt ngưỡng.\n- Được nạp thêm từ phần dư tiền lời Quỹ Tiết Kiệm sau khi đã chi cho Quỹ Cá Nhân.\n- Dùng để mua vàng tích trữ, hạn chế giữ tiền mặt bị mất giá.',
+      '- Dùng để mua vàng tích trữ, hạn chế giữ tiền mặt bị mất giá.\n- Được phân bổ theo % từ các nguồn thu hàng tháng.',
     createdAt: new Date().toISOString()
   },
   {
