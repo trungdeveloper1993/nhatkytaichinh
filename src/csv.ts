@@ -13,6 +13,7 @@ const COLUMNS = [
   'note',
   'color',
   'monthlyLimit',
+  'maxBalance',
   'allocationPercent',
   'isSpending',
   'managementMethod',
@@ -52,6 +53,7 @@ export function exportToCsv(funds: Fund[], transactions: Transaction[]): string 
       note: f.note,
       color: f.color,
       monthlyLimit: f.monthlyLimit,
+      maxBalance: f.maxBalance,
       allocationPercent: f.allocationPercent,
       isSpending: f.isSpending ? 'true' : '',
       managementMethod: f.managementMethod,
@@ -165,6 +167,7 @@ export function parseCsv(text: string): { funds: Fund[]; transactions: Transacti
     if (record === 'FUND') {
       const fundType = get('type') === 'bank' ? 'bank' : 'cash';
       const monthlyLimitStr = get('monthlyLimit');
+      const maxBalanceStr = get('maxBalance');
       const allocationStr = get('allocationPercent');
       funds.push({
         id: get('id'),
@@ -176,6 +179,7 @@ export function parseCsv(text: string): { funds: Fund[]; transactions: Transacti
         note: get('note') || undefined,
         color: get('color') || 'emerald',
         monthlyLimit: monthlyLimitStr ? Number(monthlyLimitStr) : undefined,
+        maxBalance: maxBalanceStr ? Number(maxBalanceStr) : undefined,
         allocationPercent: allocationStr ? Number(allocationStr) : undefined,
         isSpending: get('isSpending') === 'true' ? true : undefined,
         managementMethod: get('managementMethod') || undefined,

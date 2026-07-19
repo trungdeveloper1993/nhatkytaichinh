@@ -62,8 +62,9 @@ export const INITIAL_FUNDS: Fund[] = [
     color: 'blue',
     isSpending: true,
     monthlyLimit: 4000000,
+    maxBalance: 20000000,
     managementMethod:
-      '- Nhận tối đa 4 triệu/tháng từ Quỹ Tiết Kiệm; xài dư được cộng dồn sang tháng sau (tối đa cộng dồn 20 triệu).\n- Khi vượt ngưỡng cộng dồn, phần chênh lệch chuyển sang Quỹ Khẩn Cấp.\n- Ăn uống tối đa 3 triệu/tháng.\n- Học tập, mua sách/thiết bị nghiên cứu: có thể dùng tới số dư hiện có, miễn không bù từ quỹ khác.',
+      '- Nhận tối đa mỗi tháng theo giới hạn phân bổ đã đặt (mặc định 4 triệu).\n- Được cấp vốn từ mọi nguồn phân bổ thu nhập.\n- Xài dư được cộng dồn sang tháng sau, tối đa tới trần quỹ (20 triệu).\n- Khi đạt/vượt trần, phần chênh lệch được chuyển sang Quỹ Khẩn Cấp.',
     createdAt: new Date().toISOString()
   },
   {

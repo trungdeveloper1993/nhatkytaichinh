@@ -20,6 +20,7 @@ export default function FundForm({ onAddFund }: FundFormProps) {
   const [limitAmount, setLimitAmount] = useState<number>(0);
   const [allocationPercent, setAllocationPercent] = useState<number>(0);
   const [isSpending, setIsSpending] = useState(false);
+  const [maxBalance, setMaxBalance] = useState<number>(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
@@ -67,6 +68,7 @@ export default function FundForm({ onAddFund }: FundFormProps) {
       note: note.trim() ? note.trim() : undefined,
       color,
       monthlyLimit: hasLimit ? limitAmount : undefined,
+      maxBalance: maxBalance > 0 ? maxBalance : undefined,
       allocationPercent: !isSpending && allocationPercent > 0 ? allocationPercent : undefined,
       isSpending: isSpending || undefined
     });
@@ -83,6 +85,7 @@ export default function FundForm({ onAddFund }: FundFormProps) {
     setLimitAmount(0);
     setAllocationPercent(0);
     setIsSpending(false);
+    setMaxBalance(0);
     setIsOpen(false);
     setErrors({});
   };
@@ -352,6 +355,26 @@ export default function FundForm({ onAddFund }: FundFormProps) {
                     {errors.allocationPercent && <p className="text-red-500 text-xs mt-1 font-medium">{errors.allocationPercent}</p>}
                   </div>
                 )}
+              </div>
+
+              {/* Trần quỹ (số dư tối đa) */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Trần quỹ - số dư tối đa <span className="normal-case font-medium text-slate-400">(0 = không giới hạn)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    id="fund-max-balance-input"
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={maxBalance === 0 ? '' : maxBalance}
+                    onChange={(e) => setMaxBalance(Number(e.target.value))}
+                    className="w-full pl-3.5 pr-12 py-2.5 rounded-xl border glass-input border-white/60 focus:border-indigo-400 focus:ring-indigo-100/50 outline-hidden focus:ring-4 transition-all text-sm text-slate-800 font-semibold font-mono"
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">VND</span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1 font-medium">Khi số dư đạt mức này, quỹ sẽ không nhận thêm tiền phân bổ.</p>
               </div>
 
               <div>

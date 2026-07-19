@@ -61,6 +61,15 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
       if (sourceFund && sourceFund.balance < amount) {
         newErrors.amount = `Số dư quỹ nguồn không đủ (Hiện có ${formatBalance(sourceFund.balance)})`;
       }
+      // Trần quỹ: quỹ nhận không được vượt số dư tối đa
+      const destFund = funds.find((f) => f.id === selectedToFundId);
+      if (destFund && destFund.maxBalance && destFund.balance + amount > destFund.maxBalance) {
+        const room = destFund.maxBalance - destFund.balance;
+        newErrors.toFundId =
+          room > 0
+            ? `Quỹ nhận sắp vượt trần (tối đa ${formatBalance(destFund.maxBalance)}). Chỉ nhận thêm tối đa ${formatBalance(room)}.`
+            : `Quỹ nhận đã đạt trần (${formatBalance(destFund.maxBalance)}), không thể nhận thêm.`;
+      }
     } else {
       // Chi tiêu / Bổ sung: bắt buộc chọn mục đích/hạng mục
       const finalCategory = isCustomCategory ? customCategory.trim() : category;
@@ -73,6 +82,18 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
         const chosenFund = funds.find((f) => f.id === selectedFundId);
         if (chosenFund && chosenFund.balance < amount) {
           newErrors.amount = `Số dư quỹ không đủ (Hiện có ${formatBalance(chosenFund.balance)})`;
+        }
+      }
+
+      // Trần quỹ: bổ sung tiền không được vượt số dư tối đa
+      if (activeTab === 'income' && selectedFundId) {
+        const chosenFund = funds.find((f) => f.id === selectedFundId);
+        if (chosenFund && chosenFund.maxBalance && chosenFund.balance + amount > chosenFund.maxBalance) {
+          const room = chosenFund.maxBalance - chosenFund.balance;
+          newErrors.amount =
+            room > 0
+              ? `Sắp vượt trần quỹ (tối đa ${formatBalance(chosenFund.maxBalance)}). Chỉ thêm được tối đa ${formatBalance(room)}.`
+              : `Quỹ đã đạt trần (${formatBalance(chosenFund.maxBalance)}), không thể thêm nữa.`;
         }
       }
     }
