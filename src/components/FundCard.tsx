@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Fund, FUND_COLORS } from '../types';
 import { usePrivacy, formatAmount } from '../PrivacyContext';
-import { Wallet, Landmark, Copy, Check, Trash2, Edit3, Eye, EyeOff } from 'lucide-react';
+import { Wallet, Landmark, Copy, Check, Trash2, Edit3, Eye, EyeOff, ClipboardList } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface FundCardProps {
@@ -9,11 +9,12 @@ interface FundCardProps {
   fund: Fund;
   onDelete?: (fundId: string) => void;
   onEdit?: (fund: Fund) => void;
+  onOpenManagement?: (fund: Fund) => void;
   canDelete: boolean;
   currentMonthSpent?: number;
 }
 
-export default function FundCard({ fund, onDelete, onEdit, canDelete, currentMonthSpent = 0 }: FundCardProps) {
+export default function FundCard({ fund, onDelete, onEdit, onOpenManagement, canDelete, currentMonthSpent = 0 }: FundCardProps) {
   const [copied, setCopied] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const { hidden: globalHidden } = usePrivacy();
@@ -107,6 +108,20 @@ export default function FundCard({ fund, onDelete, onEdit, canDelete, currentMon
             >
               {localHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
+
+            {onOpenManagement && (
+              <button
+                id={`management-fund-btn-${fund.id}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenManagement(fund);
+                }}
+                className="p-1.5 rounded-lg hover:bg-white/90 text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer"
+                title="Cách quản lý & gợi ý phân bổ"
+              >
+                <ClipboardList className="w-4 h-4" />
+              </button>
+            )}
 
             {onEdit && (
               <button
