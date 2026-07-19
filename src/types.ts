@@ -11,6 +11,7 @@ export interface Fund {
   color: string; // Tailwind color name like 'emerald', 'indigo', 'amber', 'rose' etc.
   monthlyLimit?: number; // Hạn mức chi tiêu hàng tháng tối đa
   allocationPercent?: number; // % thu nhập gợi ý phân bổ vào quỹ này (0-100)
+  isSpending?: boolean; // Quỹ tiêu dùng: không hiện trong danh sách phân bổ
   createdAt: string;
 }
 

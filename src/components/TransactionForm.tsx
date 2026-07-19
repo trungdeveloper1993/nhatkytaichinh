@@ -235,7 +235,7 @@ export default function TransactionForm({ funds, onAddTransaction }: Transaction
                 id="tx-amount-input"
                 type="number"
                 min="0"
-                step="1000"
+                step="any"
                 placeholder="0"
                 value={amount === 0 ? '' : amount}
                 onChange={(e) => setAmount(Number(e.target.value))}

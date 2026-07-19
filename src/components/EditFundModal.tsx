@@ -20,6 +20,7 @@ export default function EditFundModal({ fund, onClose, onSave }: EditFundModalPr
   const [hasLimit, setHasLimit] = useState(false);
   const [limitAmount, setLimitAmount] = useState<number>(0);
   const [allocationPercent, setAllocationPercent] = useState<number>(0);
+  const [isSpending, setIsSpending] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Populate state when fund prop changes
@@ -35,6 +36,7 @@ export default function EditFundModal({ fund, onClose, onSave }: EditFundModalPr
       setHasLimit(fund.monthlyLimit !== undefined && fund.monthlyLimit > 0);
       setLimitAmount(fund.monthlyLimit || 0);
       setAllocationPercent(fund.allocationPercent || 0);
+      setIsSpending(fund.isSpending || false);
       setErrors({});
     }
   }, [fund]);
@@ -87,7 +89,8 @@ export default function EditFundModal({ fund, onClose, onSave }: EditFundModalPr
       note: note.trim() ? note.trim() : undefined,
       color,
       monthlyLimit: hasLimit ? limitAmount : undefined,
-      allocationPercent: allocationPercent > 0 ? allocationPercent : undefined,
+      allocationPercent: !isSpending && allocationPercent > 0 ? allocationPercent : undefined,
+      isSpending: isSpending || undefined,
     });
 
     onClose();
@@ -317,27 +320,44 @@ export default function EditFundModal({ fund, onClose, onSave }: EditFundModalPr
               )}
             </div>
 
-            {/* Tỷ lệ phân bổ thu nhập */}
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                Tỷ lệ phân bổ thu nhập <span className="normal-case font-medium text-slate-400">(% mỗi tháng, tùy chọn)</span>
-              </label>
-              <div className="relative">
+            {/* Quỹ tiêu dùng + Tỷ lệ phân bổ thu nhập */}
+            <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100 space-y-3">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
                 <input
-                  id="edit-fund-allocation-percent-input"
-                  type="number"
-                  min="0"
-                  max="100"
-                  placeholder="Ví dụ: 10"
-                  value={allocationPercent === 0 ? '' : allocationPercent}
-                  onChange={(e) => setAllocationPercent(Number(e.target.value))}
-                  className={`w-full pl-3.5 pr-10 py-2.5 rounded-xl border bg-white ${
-                    errors.allocationPercent ? 'border-red-400 focus:ring-red-100' : 'border-slate-200 focus:border-indigo-400 focus:ring-indigo-100/50'
-                  } outline-hidden focus:ring-4 transition-all text-sm font-bold font-mono text-slate-800`}
+                  id="edit-fund-is-spending-checkbox"
+                  type="checkbox"
+                  checked={isSpending}
+                  onChange={(e) => setIsSpending(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">%</span>
-              </div>
-              {errors.allocationPercent && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.allocationPercent}</p>}
+                <span className="text-xs font-bold text-slate-700">
+                  Đây là quỹ tiêu dùng 🛒 <span className="font-medium text-slate-400">(không hiện trong danh sách phân bổ)</span>
+                </span>
+              </label>
+
+              {!isSpending && (
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                    Tỷ lệ phân bổ thu nhập <span className="normal-case font-medium text-slate-400">(% mỗi tháng, tùy chọn)</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="edit-fund-allocation-percent-input"
+                      type="number"
+                      min="0"
+                      max="100"
+                      placeholder="Ví dụ: 10"
+                      value={allocationPercent === 0 ? '' : allocationPercent}
+                      onChange={(e) => setAllocationPercent(Number(e.target.value))}
+                      className={`w-full pl-3.5 pr-10 py-2.5 rounded-xl border bg-white ${
+                        errors.allocationPercent ? 'border-red-400 focus:ring-red-100' : 'border-slate-200 focus:border-indigo-400 focus:ring-indigo-100/50'
+                      } outline-hidden focus:ring-4 transition-all text-sm font-bold font-mono text-slate-800`}
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">%</span>
+                  </div>
+                  {errors.allocationPercent && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.allocationPercent}</p>}
+                </div>
+              )}
             </div>
 
             {/* Color grid */}
