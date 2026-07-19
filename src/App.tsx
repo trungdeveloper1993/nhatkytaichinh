@@ -252,6 +252,12 @@ export default function App() {
     return { totalAssets, cashAssets, bankAssets };
   }, [funds]);
 
+  // Danh sách quỹ sắp xếp theo bảng chữ cái (tiếng Việt) để hiển thị
+  const sortedFunds = useMemo(
+    () => [...funds].sort((a, b) => a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' })),
+    [funds]
+  );
+
   if (!isLoaded) {
     return (
       <div id="loading-spinner" className="min-h-screen bg-slate-50 flex flex-col items-center justify-center font-sans">
@@ -461,7 +467,7 @@ export default function App() {
                 {/* Funds Bento Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <AnimatePresence mode="popLayout">
-                    {funds.map((fund) => {
+                    {sortedFunds.map((fund) => {
                       const currentMonthSpent = transactions
                         .filter((t) => t.fundId === fund.id && t.type === 'expense' && t.date.startsWith(currentMonthPrefix))
                         .reduce((sum, t) => sum + t.amount, 0);
@@ -504,7 +510,7 @@ export default function App() {
                     <p className="text-xs text-slate-500 mt-1">Ghi nhận nhanh thu nhập hoặc chi phí phát sinh</p>
                   </div>
                   <TransactionForm
-                    funds={funds}
+                    funds={sortedFunds}
                     onAddTransaction={handleAddTransaction}
                   />
                 </div>
@@ -513,7 +519,7 @@ export default function App() {
                 <div className="lg:col-span-7">
                   <TransactionHistory
                     transactions={transactions}
-                    funds={funds}
+                    funds={sortedFunds}
                     onDeleteTransaction={handleDeleteTransaction}
                     onClearTransactions={handleClearTransactions}
                   />
@@ -530,7 +536,7 @@ export default function App() {
                 transition={{ duration: 0.2 }}
               >
                 <AllocationPlanner
-                  funds={funds}
+                  funds={sortedFunds}
                   transactions={transactions}
                   onUpdateFund={handleEditFund}
                 />
@@ -556,7 +562,7 @@ export default function App() {
                 
                 <FinancialCharts
                   transactions={transactions}
-                  funds={funds}
+                  funds={sortedFunds}
                 />
               </motion.div>
             )}
