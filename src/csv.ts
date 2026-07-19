@@ -14,6 +14,7 @@ const COLUMNS = [
   'color',
   'monthlyLimit',
   'allocationPercent',
+  'isSpending',
   'createdAt',
   'amount',
   'fundId',
@@ -51,6 +52,7 @@ export function exportToCsv(funds: Fund[], transactions: Transaction[]): string 
       color: f.color,
       monthlyLimit: f.monthlyLimit,
       allocationPercent: f.allocationPercent,
+      isSpending: f.isSpending ? 'true' : '',
       createdAt: f.createdAt,
     };
     lines.push(COLUMNS.map((c) => escapeCsv(row[c])).join(','));
@@ -173,6 +175,7 @@ export function parseCsv(text: string): { funds: Fund[]; transactions: Transacti
         color: get('color') || 'emerald',
         monthlyLimit: monthlyLimitStr ? Number(monthlyLimitStr) : undefined,
         allocationPercent: allocationStr ? Number(allocationStr) : undefined,
+        isSpending: get('isSpending') === 'true' ? true : undefined,
         createdAt: get('createdAt') || new Date().toISOString(),
       });
     } else if (record === 'TX') {

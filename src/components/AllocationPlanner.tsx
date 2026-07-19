@@ -22,20 +22,25 @@ export default function AllocationPlanner({ funds, transactions, onUpdateFund }:
       .reduce((sum, t) => sum + t.amount, 0);
   }, [transactions]);
 
+  // Quỹ tiêu dùng (không tham gia phân bổ) và quỹ được phân bổ
+  const spendingFunds = funds.filter((f) => f.isSpending);
+  const allocatableFunds = funds.filter((f) => !f.isSpending);
+
   const [income, setIncome] = useState<number>(currentMonthIncome);
   const [consumption, setConsumption] = useState<number>(0);
   const [ticked, setTicked] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
     funds.forEach((f) => {
-      init[f.id] = (f.allocationPercent ?? 0) > 0;
+      // Mặc định tick sẵn (đã chia %) cho các quỹ có tỷ lệ phân bổ
+      init[f.id] = !f.isSpending && (f.allocationPercent ?? 0) > 0;
     });
     return init;
   });
 
   const distributable = Math.max(0, income - consumption);
 
-  // Tính số tiền gợi ý cho từng quỹ (chỉ những quỹ được tick)
-  const rows = funds.map((f) => {
+  // Tính số tiền gợi ý cho từng quỹ (chỉ những quỹ được tick, đã loại quỹ tiêu dùng)
+  const rows = allocatableFunds.map((f) => {
     const percent = f.allocationPercent ?? 0;
     const included = ticked[f.id] ?? false;
     const amount = included ? Math.round((distributable * percent) / 100) : 0;
@@ -70,6 +75,10 @@ export default function AllocationPlanner({ funds, transactions, onUpdateFund }:
         <div className="glass-card rounded-2xl p-8 text-center text-slate-500">
           <p className="text-sm font-semibold">Bạn chưa có quỹ nào. Hãy tạo quỹ và đặt "Tỷ lệ phân bổ thu nhập (%)" cho từng quỹ trước.</p>
         </div>
+      ) : allocatableFunds.length === 0 ? (
+        <div className="glass-card rounded-2xl p-8 text-center text-slate-500">
+          <p className="text-sm font-semibold">Tất cả quỹ đang được đánh dấu là "quỹ tiêu dùng". Hãy bỏ tick ở ít nhất một quỹ (hoặc tạo quỹ mới) để có quỹ nhận phân bổ.</p>
+        </div>
       ) : (
         <>
           {/* Inputs */}
@@ -83,7 +92,7 @@ export default function AllocationPlanner({ funds, transactions, onUpdateFund }:
                   id="alloc-income-input"
                   type="number"
                   min="0"
-                  step="100000"
+                  step="any"
                   placeholder="0"
                   value={income === 0 ? '' : income}
                   onChange={(e) => setIncome(Number(e.target.value))}
@@ -110,7 +119,7 @@ export default function AllocationPlanner({ funds, transactions, onUpdateFund }:
                   id="alloc-consumption-input"
                   type="number"
                   min="0"
-                  step="100000"
+                  step="any"
                   placeholder="Ví dụ: 5000000"
                   value={consumption === 0 ? '' : consumption}
                   onChange={(e) => setConsumption(Number(e.target.value))}
@@ -121,6 +130,11 @@ export default function AllocationPlanner({ funds, transactions, onUpdateFund }:
               <p className="mt-1.5 text-[11px] font-semibold text-slate-400">
                 Số còn lại đem chia theo tỷ lệ: <span className="text-indigo-600 font-bold">{formatMasked(distributable)}</span>
               </p>
+              {spendingFunds.length > 0 && (
+                <p className="mt-1 text-[11px] font-semibold text-slate-400">
+                  Quỹ tiêu dùng: <span className="text-amber-600 font-bold">{spendingFunds.map((f) => f.name).join(', ')}</span>
+                </p>
+              )}
             </div>
           </div>
 
