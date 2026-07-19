@@ -76,7 +76,7 @@ export const INITIAL_FUNDS: Fund[] = [
     color: 'amber',
     allocationPercent: 10,
     managementMethod:
-      '- Dùng để mua vàng tích trữ, hạn chế giữ tiền mặt bị mất giá.\n- Được phân bổ theo % từ các nguồn thu hàng tháng.',
+      '- Được phân bổ theo % từ các nguồn thu hàng tháng.\n- Mỗi khi nạp tiền vào quỹ, hãy dùng số tiền đó mua vàng ngay để chống mất giá.\n- Số tiền nhập vào chỉ là TỔNG VỐN đã bỏ ra mua vàng tại thời điểm đó — không phải giá trị vàng theo giá thị trường hiện tại.\n- Vàng quy ra hiện kim để tích trữ, hạn chế giữ tiền mặt bị mất giá theo thời gian.',
     createdAt: new Date().toISOString()
   },
   {
