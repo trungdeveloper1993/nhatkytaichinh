@@ -29,6 +29,24 @@ export default function FundCard({ fund, onDelete, onEdit, onOpenManagement, can
 
   const formatCurrency = (amount: number) => formatAmount(amount, localHidden);
 
+  // Che một phần số tài khoản: giữ 3 số đầu + 3 số cuối, giữa là *
+  const partialMaskAccount = (s: string) => {
+    if (s.length <= 4) return s.charAt(0) + '*'.repeat(Math.max(1, s.length - 1));
+    if (s.length <= 6) return s.slice(0, 2) + '*'.repeat(s.length - 2);
+    return s.slice(0, 3) + '*'.repeat(s.length - 6) + s.slice(-3);
+  };
+
+  // STK: ẩn hoàn toàn khi quỹ đang ẩn; che một phần khi chỉ mở bằng con mắt quỹ;
+  // chỉ hiện đầy đủ khi con mắt tổng (header) đang ở chế độ "Hiện số".
+  const stkFull = !localHidden && !globalHidden;
+  const accountDisplay = fund.accountNumber
+    ? localHidden
+      ? '••••••••••'
+      : stkFull
+        ? fund.accountNumber
+        : partialMaskAccount(fund.accountNumber)
+    : '';
+
   // Find color style
   const colorScheme = FUND_COLORS.find((c) => c.value === fund.color) || FUND_COLORS[0];
 
@@ -157,7 +175,7 @@ export default function FundCard({ fund, onDelete, onEdit, onOpenManagement, can
           {fund.name}
         </h3>
 
-        {fund.type === 'bank' && fund.bankName && (
+        {fund.type === 'bank' && fund.bankName && !localHidden && (
           <div className="flex items-center gap-1.5 mt-1.5 text-[11px] font-bold text-indigo-700 bg-white/60 px-2 py-0.5 rounded-md w-fit border border-indigo-100">
             <Landmark className="w-3 h-3" />
             <span>{fund.bankName}</span>
@@ -166,13 +184,13 @@ export default function FundCard({ fund, onDelete, onEdit, onOpenManagement, can
 
         {fund.type === 'bank' && fund.accountNumber && (
           <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500 font-mono bg-white/50 px-2 py-0.5 rounded-md w-fit border border-slate-100">
-            <span>STK: {localHidden ? '••••••••••' : fund.accountNumber}</span>
+            <span>STK: {accountDisplay}</span>
             {!localHidden && (
               <button
                 id={`copy-stk-btn-${fund.id}`}
                 onClick={handleCopy}
                 className="hover:text-indigo-600 transition-colors p-0.5"
-                title="Sao chép số tài khoản"
+                title="Sao chép số tài khoản (đầy đủ)"
               >
                 {copied ? (
                   <Check className="w-3.5 h-3.5 text-emerald-500" />
