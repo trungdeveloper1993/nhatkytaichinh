@@ -12,6 +12,7 @@ export interface Fund {
   monthlyLimit?: number; // Hạn mức chi tiêu hàng tháng tối đa
   allocationPercent?: number; // % thu nhập gợi ý phân bổ vào quỹ này (0-100)
   isSpending?: boolean; // Quỹ tiêu dùng: không hiện trong danh sách phân bổ
+  managementMethod?: string; // Cách quản lý & gợi ý phân bổ chi tiết cho quỹ
   createdAt: string;
 }
 

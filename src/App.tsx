@@ -5,6 +5,7 @@ import { exportToCsv, parseCsv } from './csv';
 import FundCard from './components/FundCard';
 import FundForm from './components/FundForm';
 import EditFundModal from './components/EditFundModal';
+import ManagementModal from './components/ManagementModal';
 import TransactionForm from './components/TransactionForm';
 import FinancialCharts from './components/FinancialCharts';
 import TransactionHistory from './components/TransactionHistory';
@@ -22,6 +23,7 @@ export default function App() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<'funds' | 'transactions' | 'allocation' | 'reports'>('funds');
   const [editingFund, setEditingFund] = useState<Fund | null>(null);
+  const [managementFund, setManagementFund] = useState<Fund | null>(null);
   const { hidden, toggle, format } = usePrivacy();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -477,6 +479,7 @@ export default function App() {
                           fund={fund}
                           onDelete={handleDeleteFund}
                           onEdit={(f) => setEditingFund(f)}
+                          onOpenManagement={(f) => setManagementFund(f)}
                           canDelete={funds.length > 1}
                           currentMonthSpent={currentMonthSpent}
                         />
@@ -583,6 +586,18 @@ export default function App() {
           fund={editingFund}
           onClose={() => setEditingFund(null)}
           onSave={handleEditFund}
+        />
+      )}
+
+      {/* Management Method Modal */}
+      {managementFund && (
+        <ManagementModal
+          fund={managementFund}
+          onClose={() => setManagementFund(null)}
+          onSave={(f) => {
+            handleEditFund(f);
+            setManagementFund(f);
+          }}
         />
       )}
 
