@@ -26,8 +26,11 @@ export default function AllocationPlanner({ funds, transactions, onUpdateFund }:
   const spendingFunds = funds.filter((f) => f.isSpending);
   const allocatableFunds = funds.filter((f) => !f.isSpending);
 
+  // Tổng giới hạn của các quỹ tiêu dùng (dùng làm số giữ lại tiêu dùng mặc định)
+  const spendingLimit = spendingFunds.reduce((s, f) => s + (f.monthlyLimit ?? 0), 0);
+
   const [income, setIncome] = useState<number>(currentMonthIncome);
-  const [consumption, setConsumption] = useState<number>(0);
+  const [consumption, setConsumption] = useState<number>(spendingLimit);
   const [ticked, setTicked] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
     funds.forEach((f) => {
@@ -131,9 +134,21 @@ export default function AllocationPlanner({ funds, transactions, onUpdateFund }:
                 Số còn lại đem chia theo tỷ lệ: <span className="text-indigo-600 font-bold">{formatMasked(distributable)}</span>
               </p>
               {spendingFunds.length > 0 && (
-                <p className="mt-1 text-[11px] font-semibold text-slate-400">
-                  Quỹ tiêu dùng: <span className="text-amber-600 font-bold">{spendingFunds.map((f) => f.name).join(', ')}</span>
-                </p>
+                <div className="mt-1 text-[11px] font-semibold text-slate-400">
+                  <p>
+                    Quỹ tiêu dùng: <span className="text-amber-600 font-bold">{spendingFunds.map((f) => f.name).join(', ')}</span>
+                  </p>
+                  {spendingLimit > 0 && (
+                    <button
+                      id="alloc-use-spending-limit-btn"
+                      type="button"
+                      onClick={() => setConsumption(spendingLimit)}
+                      className="mt-0.5 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <RefreshCw className="w-3 h-3" /> Dùng giới hạn quỹ tiêu dùng ({formatMasked(spendingLimit)})
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>

@@ -9,6 +9,7 @@ export const INITIAL_FUNDS: Fund[] = [
     balance: 395000000,
     note: 'Nguồn sinh lời ổn định hàng tháng, giúp cân bằng cuộc sống khi đầu tư gặp khó khăn. Gửi tiết kiệm ở nhiều ngân hàng, chia kỳ hạn 1/3/6 tháng (10%/20%/70%); kỳ hạn ngắn để xử lý biến cố.',
     color: 'emerald',
+    allocationPercent: 30,
     createdAt: new Date().toISOString()
   },
   {
@@ -18,6 +19,7 @@ export const INITIAL_FUNDS: Fund[] = [
     balance: 1840647277,
     note: 'Sinh lợi nhuận từ đầu tư (chứng khoán, crypto, bất động sản, kinh doanh) và công việc.',
     color: 'indigo',
+    allocationPercent: 30,
     createdAt: new Date().toISOString()
   },
   {
@@ -27,6 +29,7 @@ export const INITIAL_FUNDS: Fund[] = [
     balance: 6217000,
     note: 'Giúp đỡ người thực sự cần: ưu tiên viện phí, nhu yếu phẩm, việc khẩn cấp về tính mạng; ưu tiên trẻ mồ côi và người mất sức lao động. Không đưa tiền mặt trực tiếp.',
     color: 'purple',
+    allocationPercent: 5,
     createdAt: new Date().toISOString()
   },
   {
@@ -36,6 +39,7 @@ export const INITIAL_FUNDS: Fund[] = [
     balance: 16795000,
     note: 'Dự phòng bệnh tật, chăm sóc cha mẹ, xử lý rủi ro lớn về sức khỏe và tính mạng. Không giới hạn bổ sung.',
     color: 'rose',
+    allocationPercent: 10,
     createdAt: new Date().toISOString()
   },
   {
@@ -46,6 +50,7 @@ export const INITIAL_FUNDS: Fund[] = [
     note: 'Chi phí sinh hoạt hàng tháng (ăn uống, nhu yếu phẩm, giải trí, học tập) và các khoản phát sinh (xăng xe, đi lại).',
     color: 'blue',
     isSpending: true,
+    monthlyLimit: 4000000,
     createdAt: new Date().toISOString()
   },
   {
@@ -55,6 +60,7 @@ export const INITIAL_FUNDS: Fund[] = [
     balance: 25000000,
     note: 'Phòng khi tiền mất giá, lạm phát. Vàng như tài sản bảo trợ cho tương lai.',
     color: 'amber',
+    allocationPercent: 10,
     createdAt: new Date().toISOString()
   },
   {
