@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Fund, Transaction, FUND_COLORS } from '../types';
-import { usePrivacy } from '../PrivacyContext';
+import { formatCurrency } from '../utils';
 import { PieChart, Wallet, RefreshCw, Sparkles, Info } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -11,7 +11,8 @@ interface AllocationPlannerProps {
 }
 
 export default function AllocationPlanner({ funds, transactions, onUpdateFund }: AllocationPlannerProps) {
-  const { format: formatMasked } = usePrivacy();
+  // Bảng phân bổ chỉ là gợi ý nên luôn hiển thị số thật (không che theo chế độ ẩn)
+  const formatMasked = formatCurrency;
 
   // Tổng thu nhập ("Bổ sung tiền") của tháng hiện tại
   const currentMonthIncome = useMemo(() => {
