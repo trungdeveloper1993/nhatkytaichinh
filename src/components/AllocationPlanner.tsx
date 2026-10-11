@@ -3,6 +3,7 @@ import { Fund, Transaction, FUND_COLORS } from '../types';
 import { formatCurrency } from '../utils';
 import { PieChart, Wallet, RefreshCw, Sparkles, Info } from 'lucide-react';
 import { motion } from 'motion/react';
+import MoneyInput from './ui/MoneyInput';
 
 const LS_ALLOC_INCOME = 'nhat_ky_tai_chinh_alloc_income';
 
@@ -43,7 +44,11 @@ export default function AllocationPlanner({ funds, transactions, onUpdateFund }:
   });
   const setIncome = (value: number) => {
     setIncomeState(value);
-    localStorage.setItem(LS_ALLOC_INCOME, String(value));
+    try {
+      localStorage.setItem(LS_ALLOC_INCOME, String(value));
+    } catch {
+      // bỏ qua nếu trình duyệt chặn lưu trữ
+    }
   };
   const [consumption, setConsumption] = useState<number>(spendingLimit);
   const [ticked, setTicked] = useState<Record<string, boolean>>(() => {
@@ -82,13 +87,13 @@ export default function AllocationPlanner({ funds, transactions, onUpdateFund }:
   };
 
   return (
-    <div className="space-y-6">
-      <div className="mb-2">
-        <h2 className="font-display font-extrabold text-xl text-slate-800 flex items-center gap-2">
-          <PieChart className="w-5 h-5 text-indigo-600" />
-          Gợi Ý Phân Bổ Thu Nhập
+    <div className="space-y-5">
+      <div>
+        <h2 className="lg:hidden font-display font-black text-2xl text-slate-900 flex items-center gap-2">
+          <PieChart className="w-6 h-6 text-indigo-600" />
+          Phân bổ thu nhập
         </h2>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-slate-500 mt-1 lg:mt-0">
           Nhập tổng thu nhập tháng này, chọn (tick) các quỹ muốn phân bổ — app sẽ gợi ý số tiền theo tỷ lệ của từng quỹ. Đây chỉ là gợi ý, không tự tạo giao dịch.
         </p>
       </div>
@@ -104,24 +109,12 @@ export default function AllocationPlanner({ funds, transactions, onUpdateFund }:
       ) : (
         <>
           {/* Inputs */}
-          <div className="glass-card rounded-2xl p-5 shadow-xs border border-white/40 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-white/80 backdrop-blur-xl border border-white rounded-2xl shadow-sm p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+              <label htmlFor="alloc-income-input" className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                 Tổng thu nhập tháng này
               </label>
-              <div className="relative">
-                <input
-                  id="alloc-income-input"
-                  type="number"
-                  min="0"
-                  step="any"
-                  placeholder="0"
-                  value={income === 0 ? '' : income}
-                  onChange={(e) => setIncome(Number(e.target.value))}
-                  className="w-full pl-3.5 pr-12 py-2.5 rounded-xl border glass-input border-white/60 focus:border-indigo-400 outline-hidden focus:ring-4 focus:ring-indigo-100/40 transition-all text-sm font-bold font-mono text-emerald-600 bg-white"
-                />
-                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">VND</span>
-              </div>
+              <MoneyInput id="alloc-income-input" value={income} onChange={setIncome} toneClass="text-emerald-600" showWords />
               <button
                 id="alloc-use-actual-income-btn"
                 type="button"
@@ -133,22 +126,16 @@ export default function AllocationPlanner({ funds, transactions, onUpdateFund }:
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+              <label htmlFor="alloc-consumption-input" className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                 Giữ lại cho tiêu dùng
               </label>
-              <div className="relative">
-                <input
-                  id="alloc-consumption-input"
-                  type="number"
-                  min="0"
-                  step="any"
-                  placeholder="Ví dụ: 5000000"
-                  value={consumption === 0 ? '' : consumption}
-                  onChange={(e) => setConsumption(Number(e.target.value))}
-                  className="w-full pl-3.5 pr-12 py-2.5 rounded-xl border glass-input border-white/60 focus:border-indigo-400 outline-hidden focus:ring-4 focus:ring-indigo-100/40 transition-all text-sm font-bold font-mono text-amber-600 bg-white"
-                />
-                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">VND</span>
-              </div>
+              <MoneyInput
+                id="alloc-consumption-input"
+                value={consumption}
+                onChange={setConsumption}
+                toneClass="text-amber-600"
+                placeholder="Ví dụ: 5.000.000"
+              />
               <p className="mt-1.5 text-[11px] font-semibold text-slate-400">
                 Số còn lại đem chia theo tỷ lệ: <span className="text-indigo-600 font-bold">{formatMasked(distributable)}</span>
               </p>
@@ -185,7 +172,7 @@ export default function AllocationPlanner({ funds, transactions, onUpdateFund }:
                 return (
                   <div
                     key={fund.id}
-                    className={`px-5 py-3 flex items-center gap-3 transition-colors ${included ? 'bg-white/40' : 'bg-white/10 opacity-70'}`}
+                    className={`px-4 sm:px-5 py-3 flex items-center gap-2.5 sm:gap-3 transition-colors ${included ? 'bg-white/40' : 'bg-white/10 opacity-70'}`}
                   >
                     <input
                       id={`alloc-tick-${fund.id}`}
@@ -197,10 +184,10 @@ export default function AllocationPlanner({ funds, transactions, onUpdateFund }:
 
                     <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${clr.activeBg}`} />
 
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-slate-800 truncate">{fund.name}</p>
-                      {fund.note && <p className="text-[11px] text-slate-400 truncate italic">{fund.note}</p>}
-                    </div>
+                    <label htmlFor={`alloc-tick-${fund.id}`} className="min-w-0 flex-1 cursor-pointer">
+                      <p className="text-sm font-bold text-slate-800 leading-tight break-words">{fund.name}</p>
+                      {fund.note && <p className="hidden sm:block text-[11px] text-slate-400 truncate italic">{fund.note}</p>}
+                    </label>
 
                     {/* % editable (lưu vào quỹ) */}
                     <div className="relative shrink-0">
@@ -212,14 +199,16 @@ export default function AllocationPlanner({ funds, transactions, onUpdateFund }:
                         value={percent === 0 ? '' : percent}
                         placeholder="0"
                         onChange={(e) => handlePercentChange(fund, Number(e.target.value))}
-                        className="w-16 pl-2 pr-5 py-1.5 rounded-lg border border-slate-200 bg-white outline-hidden focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 text-xs font-bold font-mono text-slate-700 text-right"
+                        inputMode="numeric"
+                        aria-label={`Tỷ lệ phân bổ cho ${fund.name}`}
+                        className="w-14 sm:w-16 pl-2 pr-5 py-1.5 rounded-lg border border-slate-200 bg-white outline-hidden focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 text-sm sm:text-xs font-bold font-mono text-slate-700 text-right"
                       />
                       <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">%</span>
                     </div>
 
                     {/* Số tiền gợi ý */}
-                    <div className="w-28 text-right shrink-0">
-                      <span className={`text-sm font-display font-bold font-mono ${included ? 'text-indigo-600' : 'text-slate-300'}`}>
+                    <div className="w-[5.5rem] sm:w-28 text-right shrink-0">
+                      <span className={`text-xs sm:text-sm font-display font-bold font-mono tabular-nums ${included ? 'text-indigo-600' : 'text-slate-300'}`}>
                         {included ? formatMasked(amount) : '—'}
                       </span>
                       {included && capped && (

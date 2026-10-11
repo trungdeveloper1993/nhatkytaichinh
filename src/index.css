@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Space+Grotesk:wght@300..700&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+/* Font Inter / Space Grotesk / JetBrains Mono được tải trong index.html */
 @import "tailwindcss";
 
 @theme {
@@ -12,6 +12,20 @@ html {
   touch-action: manipulation;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Nền trùng màu gradient để khi kéo quá (iOS) không lộ nền trắng */
+body {
+  background-color: #eef2ff;
+}
+
+/* Ẩn thanh cuộn cho các hàng cuộn ngang (chip, bộ lọc) */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Frosted Glass Utilities */
@@ -27,8 +41,10 @@ html {
 
 .glass-card {
   backdrop-filter: blur(24px);
-  background-color: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  -webkit-backdrop-filter: blur(24px);
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 1px solid #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
 }
 
 .glass-input {

@@ -98,6 +98,103 @@ export function calculateCategorySpending(
   }));
 }
 
+// Định dạng gọn cho chỗ hẹp: 1.840.647.277 -> "1,84 tỷ", 16.700.000 -> "16,7 tr", 950.000 -> "950k"
+export function formatCompactVND(amount: number): string {
+  const abs = Math.abs(amount);
+  const sign = amount < 0 ? '-' : '';
+  const fmt = (v: number) => v.toLocaleString('vi-VN', { maximumFractionDigits: v < 10 ? 2 : 1 });
+  if (abs >= 1e9) return `${sign}${fmt(abs / 1e9)} tỷ`;
+  if (abs >= 1e6) return `${sign}${fmt(abs / 1e6)} tr`;
+  if (abs >= 1e3) return `${sign}${fmt(abs / 1e3)}k`;
+  return `${sign}${abs.toLocaleString('vi-VN')} ₫`;
+}
+
+// ---- Đọc số tiền thành chữ tiếng Việt (chống nhập thừa/thiếu số 0) ----
+const DIGIT_WORDS = ['không', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín'];
+
+// Đọc 3 chữ số; full = đọc cả "không trăm"/"linh" (khi không phải nhóm đứng đầu)
+function readTriple(n: number, full: boolean): string {
+  const h = Math.floor(n / 100);
+  const t = Math.floor((n % 100) / 10);
+  const u = n % 10;
+  const parts: string[] = [];
+  if (h > 0 || full) parts.push(`${DIGIT_WORDS[h]} trăm`);
+  if (t === 0) {
+    if (u > 0) {
+      if (h > 0 || full) parts.push('linh');
+      parts.push(DIGIT_WORDS[u]);
+    }
+  } else if (t === 1) {
+    parts.push('mười');
+    if (u === 5) parts.push('lăm');
+    else if (u > 0) parts.push(DIGIT_WORDS[u]);
+  } else {
+    parts.push(`${DIGIT_WORDS[t]} mươi`);
+    if (u === 1) parts.push('mốt');
+    else if (u === 4) parts.push('tư');
+    else if (u === 5) parts.push('lăm');
+    else if (u > 0) parts.push(DIGIT_WORDS[u]);
+  }
+  return parts.join(' ');
+}
+
+// Đọc số < 1 tỷ theo nhóm triệu / nghìn / đơn vị
+function readBelowBillion(n: number, full: boolean): string {
+  const groups = [n % 1000, Math.floor(n / 1000) % 1000, Math.floor(n / 1e6) % 1000];
+  const names = ['', 'nghìn', 'triệu'];
+  let top = 2;
+  while (top > 0 && groups[top] === 0) top--;
+  const words: string[] = [];
+  for (let i = top; i >= 0; i--) {
+    if (groups[i] === 0) continue;
+    words.push(readTriple(groups[i], i === top ? full : true) + (names[i] ? ` ${names[i]}` : ''));
+  }
+  return words.join(' ');
+}
+
+function readNumber(n: number, full: boolean): string {
+  if (n >= 1e9) {
+    const head = `${readNumber(Math.floor(n / 1e9), full)} tỷ`;
+    const rest = n % 1e9;
+    return rest > 0 ? `${head} ${readBelowBillion(rest, true)}` : head;
+  }
+  return readBelowBillion(n, full);
+}
+
+export function numberToVietnameseWords(amount: number): string {
+  const n = Math.floor(Math.abs(amount));
+  if (n === 0) return 'Không đồng';
+  const text = readNumber(n, false).replace(/\s+/g, ' ').trim();
+  return `${amount < 0 ? 'Âm ' : ''}${text.charAt(0).toUpperCase()}${text.slice(1)} đồng`;
+}
+
+// Đọc "YYYY-MM-DD" thành Date theo giờ địa phương (tránh lệch ngày do múi giờ)
+export function parseISODateLocal(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
+const WEEKDAYS = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
+
+// Nhãn ngày thân thiện cho lịch sử: "Hôm nay", "Hôm qua", "Thứ hai, 05/10/2026"
+export function friendlyDayLabel(dateStr: string, now: Date = new Date()): string {
+  const d = parseISODateLocal(dateStr);
+  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diffDays = Math.round((startOf(now) - startOf(d)) / 86400000);
+  if (diffDays === 0) return 'Hôm nay';
+  if (diffDays === 1) return 'Hôm qua';
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return `${WEEKDAYS[d.getDay()]}, ${dd}/${mm}/${d.getFullYear()}`;
+}
+
+// Ngày đầy đủ cho lời chào: "Chủ nhật, 11/10/2026"
+export function fullDateLabel(now: Date = new Date()): string {
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  return `${WEEKDAYS[now.getDay()]}, ${dd}/${mm}/${now.getFullYear()}`;
+}
+
 // Format "YYYY-MM" to "Tháng MM/YYYY"
 export function formatMonthYear(monthStr: string): string {
   const [year, month] = monthStr.split('-');

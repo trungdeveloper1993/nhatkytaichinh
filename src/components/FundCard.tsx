@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Fund, FUND_COLORS } from '../types';
 import { usePrivacy, formatAmount } from '../PrivacyContext';
-import { Wallet, Landmark, Copy, Check, Trash2, Edit3, Eye, EyeOff, ClipboardList, Pin } from 'lucide-react';
+import { Wallet, Landmark, Copy, Check, Trash2, Edit3, Eye, EyeOff, ClipboardList, Pin, ChevronRight } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface FundCardProps {
@@ -11,11 +11,12 @@ interface FundCardProps {
   onEdit?: (fund: Fund) => void;
   onOpenManagement?: (fund: Fund) => void;
   onTogglePin?: (fund: Fund) => void;
+  onOpenDetail?: (fund: Fund) => void;
   canDelete: boolean;
   currentMonthSpent?: number;
 }
 
-export default function FundCard({ fund, onDelete, onEdit, onOpenManagement, onTogglePin, canDelete, currentMonthSpent = 0 }: FundCardProps) {
+export default function FundCard({ fund, onDelete, onEdit, onOpenManagement, onTogglePin, onOpenDetail, canDelete, currentMonthSpent = 0 }: FundCardProps) {
   const [copied, setCopied] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const { hidden: globalHidden } = usePrivacy();
@@ -68,26 +69,42 @@ export default function FundCard({ fund, onDelete, onEdit, onOpenManagement, onT
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.25 }}
-      className={`group relative p-5 rounded-2xl border transition-all duration-300 shadow-xs hover:shadow-md flex flex-col justify-between overflow-hidden backdrop-blur-md bg-opacity-60 ${
-        fund.pinned ? 'border-indigo-300 ring-2 ring-indigo-200/60' : 'border-white/40'
-      } ${colorScheme.bg}`}
+      role={onOpenDetail ? 'button' : undefined}
+      tabIndex={onOpenDetail ? 0 : undefined}
+      onClick={() => onOpenDetail?.(fund)}
+      onKeyDown={(e) => {
+        if (onOpenDetail && e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onOpenDetail(fund);
+        }
+      }}
+      className={`group relative p-5 rounded-2xl border transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between overflow-hidden backdrop-blur-md bg-opacity-60 outline-hidden focus-visible:ring-4 focus-visible:ring-indigo-200 ${
+        onOpenDetail ? 'cursor-pointer' : ''
+      } ${fund.pinned ? 'border-indigo-300 ring-2 ring-indigo-200/60' : 'border-white/60'} ${colorScheme.bg}`}
     >
       {/* Custom Confirmation Overlay */}
       {showConfirm && (
-        <div className="absolute inset-0 bg-white/95 backdrop-blur-md p-4 flex flex-col justify-center items-center text-center z-20 animate-fade-in">
+        <div
+          className="absolute inset-0 bg-white/95 backdrop-blur-md p-4 flex flex-col justify-center items-center text-center z-20 animate-fade-in cursor-default"
+          onClick={(e) => e.stopPropagation()}
+        >
           <p className="text-sm font-black text-slate-800">Xác nhận xóa quỹ?</p>
           <p className="text-[10px] text-slate-500 font-semibold mt-1 max-w-[200px]">
             Tất cả dữ liệu số dư và giao dịch liên quan sẽ bị ảnh hưởng.
           </p>
           <div className="flex gap-2.5 mt-4 w-full justify-center">
             <button
-              onClick={() => setShowConfirm(false)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowConfirm(false);
+              }}
               className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-all cursor-pointer border border-slate-200"
             >
               Hủy
             </button>
             <button
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 if (onDelete) onDelete(fund.id);
                 setShowConfirm(false);
               }}
@@ -230,11 +247,18 @@ export default function FundCard({ fund, onDelete, onEdit, onOpenManagement, onT
         )}
       </div>
 
-      <div className="mt-6">
-        <p className="text-xs text-slate-500 font-medium">Số dư khả dụng</p>
-        <p className="font-display font-bold text-2xl tracking-tight text-slate-900 mt-0.5">
-          {formatCurrency(fund.balance)}
-        </p>
+      <div className="mt-6 flex items-end justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-xs text-slate-500 font-medium">Số dư khả dụng</p>
+          <p className="font-display font-bold text-2xl tracking-tight text-slate-900 mt-0.5 tabular-nums truncate">
+            {formatCurrency(fund.balance)}
+          </p>
+        </div>
+        {onOpenDetail && (
+          <span className="shrink-0 mb-1 flex items-center text-[11px] font-bold text-slate-400 group-hover:text-indigo-600 transition-colors">
+            Chi tiết <ChevronRight className="w-3.5 h-3.5" />
+          </span>
+        )}
       </div>
 
       {fund.monthlyLimit !== undefined && fund.monthlyLimit > 0 && (

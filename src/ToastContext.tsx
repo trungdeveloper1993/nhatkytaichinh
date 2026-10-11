@@ -4,14 +4,26 @@ import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'info';
 
+interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
+interface ToastOptions {
+  action?: ToastAction;
+  /** Thời gian hiển thị (ms). 0 = giữ đến khi người dùng đóng */
+  duration?: number;
+}
+
 interface Toast {
   id: number;
   message: string;
   type: ToastType;
+  action?: ToastAction;
 }
 
 interface ToastContextValue {
-  notify: (message: string, type?: ToastType) => void;
+  notify: (message: string, type?: ToastType, options?: ToastOptions) => void;
 }
 
 const ToastContext = createContext<ToastContextValue>({ notify: () => {} });
@@ -47,12 +59,16 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const notify = useCallback((message: string, type: ToastType = 'success') => {
+  const notify = useCallback((message: string, type: ToastType = 'success', options: ToastOptions = {}) => {
     const id = ++idRef.current;
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3800);
+    // Giữ tối đa 3 thông báo trên màn hình
+    setToasts((prev) => [...prev.slice(-2), { id, message, type, action: options.action }]);
+    const duration = options.duration ?? (options.action ? 6000 : 3800);
+    if (duration > 0) {
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, duration);
+    }
   }, []);
 
   return (
@@ -60,7 +76,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
 
       {/* Toast viewport */}
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 w-full max-w-sm px-4 pointer-events-none">
+      <div className="fixed top-[max(env(safe-area-inset-top),16px)] left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 w-full max-w-sm px-4 pointer-events-none">
         <AnimatePresence initial={false}>
           {toasts.map((t) => {
             const s = STYLES[t.type];
@@ -73,9 +89,21 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 exit={{ opacity: 0, y: -12, scale: 0.95 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 className={`pointer-events-auto w-full flex items-start gap-2.5 px-4 py-3 rounded-2xl border shadow-lg backdrop-blur-xl ${s.ring}`}
+                role="status"
               >
                 <span className="shrink-0 mt-0.5">{s.icon}</span>
                 <p className={`flex-1 text-sm font-semibold leading-snug ${s.text}`}>{t.message}</p>
+                {t.action && (
+                  <button
+                    onClick={() => {
+                      t.action?.onClick();
+                      dismiss(t.id);
+                    }}
+                    className="shrink-0 -my-0.5 px-2.5 py-1 rounded-lg text-xs font-black text-indigo-700 bg-white/80 hover:bg-white border border-indigo-100 transition-colors cursor-pointer"
+                  >
+                    {t.action.label}
+                  </button>
+                )}
                 <button
                   onClick={() => dismiss(t.id)}
                   className="shrink-0 p-0.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-white/60 transition-colors cursor-pointer"

@@ -1,0 +1,42 @@
+{
+  "id": "./",
+  "name": "Nhật Ký Tài Chính",
+  "short_name": "Tài Chính",
+  "description": "Hãy quản lý túi tiền của bạn nhé ❤️ Ghi chép thu chi, quản lý quỹ, gợi ý phân bổ thu nhập và báo cáo — dữ liệu nằm ngay trên thiết bị của bạn.",
+  "lang": "vi",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef2ff",
+  "theme_color": "#f5f7ff",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Ghi chi tiêu",
+      "short_name": "Chi tiêu",
+      "description": "Ghi nhanh một khoản chi",
+      "url": "./?quick=expense",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Bổ sung tiền vào quỹ",
+      "short_name": "Thu nhập",
+      "description": "Ghi nhanh một khoản thu",
+      "url": "./?quick=income",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Sổ giao dịch",
+      "short_name": "Giao dịch",
+      "url": "./#/transactions",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}
