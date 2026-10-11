@@ -23,7 +23,14 @@ const COLOR_PALETTE = [
 ];
 
 export default function FinancialCharts({ transactions, funds }: FinancialChartsProps) {
-  const { format: formatCurrency } = usePrivacy();
+  const { format: formatCurrency, compact } = usePrivacy();
+  // Số gọn trên mobile (1,84 tỷ), đầy đủ từ màn hình vừa trở lên
+  const responsiveAmount = (amount: number) => (
+    <>
+      <span className="sm:hidden">{compact(amount)}</span>
+      <span className="hidden sm:inline">{formatCurrency(amount)}</span>
+    </>
+  );
   // Get all unique months from transactions in sorted order
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
@@ -208,13 +215,13 @@ export default function FinancialCharts({ transactions, funds }: FinancialCharts
           <div className="bg-white/60 px-2 py-2.5 min-[380px]:px-2.5 min-[450px]:p-3.5 rounded-xl border border-white/40 shadow-xs flex flex-col justify-between min-w-0">
             <p className="text-[9px] min-[360px]:text-[10px] font-bold text-slate-500 uppercase tracking-tight">Tổng Thu</p>
             <p className="font-display font-bold text-[10.5px] min-[360px]:text-xs min-[450px]:text-sm sm:text-base text-emerald-600 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis" title={`+${formatCurrency(selectedMonthStats.income)}`}>
-              +{formatCurrency(selectedMonthStats.income)}
+              +{responsiveAmount(selectedMonthStats.income)}
             </p>
           </div>
           <div className="bg-white/60 px-2 py-2.5 min-[380px]:px-2.5 min-[450px]:p-3.5 rounded-xl border border-white/40 shadow-xs flex flex-col justify-between min-w-0">
             <p className="text-[9px] min-[360px]:text-[10px] font-bold text-slate-500 uppercase tracking-tight">Tổng Chi</p>
             <p className="font-display font-bold text-[10.5px] min-[360px]:text-xs min-[450px]:text-sm sm:text-base text-red-500 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis" title={`-${formatCurrency(selectedMonthStats.expense)}`}>
-              -{formatCurrency(selectedMonthStats.expense)}
+              -{responsiveAmount(selectedMonthStats.expense)}
             </p>
           </div>
           <div className="bg-white/60 px-2 py-2.5 min-[380px]:px-2.5 min-[450px]:p-3.5 rounded-xl border border-white/40 shadow-xs flex flex-col justify-between min-w-0">
@@ -223,7 +230,7 @@ export default function FinancialCharts({ transactions, funds }: FinancialCharts
               selectedMonthStats.balance >= 0 ? 'text-indigo-600' : 'text-amber-600'
             }`} title={`${selectedMonthStats.balance >= 0 ? '+' : ''}${formatCurrency(selectedMonthStats.balance)}`}>
               {selectedMonthStats.balance >= 0 ? '+' : ''}
-              {formatCurrency(selectedMonthStats.balance)}
+              {responsiveAmount(selectedMonthStats.balance)}
             </p>
           </div>
         </div>

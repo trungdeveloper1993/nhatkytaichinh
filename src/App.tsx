@@ -1,191 +1,230 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Plus, Loader2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { Fund, Transaction } from './types';
-import { INITIAL_FUNDS, INITIAL_TRANSACTIONS } from './data';
+import { useFinanceStore } from './store';
 import { exportToCsv, parseCsv } from './csv';
-import FundCard from './components/FundCard';
-import FundForm from './components/FundForm';
-import EditFundModal from './components/EditFundModal';
-import ManagementModal from './components/ManagementModal';
-import TransactionForm from './components/TransactionForm';
-import FinancialCharts from './components/FinancialCharts';
-import TransactionHistory from './components/TransactionHistory';
-import AllocationPlanner from './components/AllocationPlanner';
-import { Wallet, Landmark, Landmark as BankIcon, CircleDollarSign, Plus, CheckCircle2, Layers, History, BarChart3, Eye, EyeOff, Download, Upload, PieChart } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { usePrivacy } from './PrivacyContext';
 import { useToast } from './ToastContext';
+import { useConfirm } from './DialogContext';
+import { usePersistentState } from './hooks';
+import { applyUpdate, onUpdateReady } from './pwa/register';
+import { STORAGE_KEYS, BACKUP_REMINDER_DAYS, APP_NAME } from './config';
+import { sortFunds, TransactionInput } from './ledger';
 import { formatCurrency } from './utils';
+import { NAV_BY_KEY, TabKey, tabFromHash } from './nav';
+import Sidebar from './components/layout/Sidebar';
+import TopBar from './components/layout/TopBar';
+import BottomNav from './components/layout/BottomNav';
+import DashboardPage from './pages/DashboardPage';
+import FundsPage from './pages/FundsPage';
+import TransactionsPage from './pages/TransactionsPage';
+import SettingsPage from './pages/SettingsPage';
+import AllocationPlanner from './components/AllocationPlanner';
+import QuickAddSheet from './components/QuickAddSheet';
+import FundEditorSheet, { FundInput } from './components/FundEditorSheet';
+import FundDetailSheet from './components/FundDetailSheet';
+import ManagementModal from './components/ManagementModal';
+import WhatsNewSheet, { useWhatsNew } from './components/WhatsNewSheet';
+import { TxKind } from './components/TransactionForm';
+import { PageHeader } from './components/ui/primitives';
 
-const LOCAL_STORAGE_FUNDS_KEY = 'nhat_ky_tai_chinh_funds';
-const LOCAL_STORAGE_TX_KEY = 'nhat_ky_tai_chinh_transactions';
+// Tab Báo cáo dùng thư viện biểu đồ nặng -> tải khi cần để mở app nhanh hơn
+const FinancialCharts = lazy(() => import('./components/FinancialCharts'));
+
+interface QuickAddState {
+  open: boolean;
+  key: number;
+  type?: TxKind;
+  fundId?: string;
+  editing?: Transaction | null;
+}
 
 export default function App() {
-  const [funds, setFunds] = useState<Fund[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [activeTab, setActiveTab] = useState<'funds' | 'transactions' | 'allocation' | 'reports'>('funds');
-  const [editingFund, setEditingFund] = useState<Fund | null>(null);
-  const [managementFund, setManagementFund] = useState<Fund | null>(null);
-  const { hidden, toggle, format } = usePrivacy();
+  const store = useFinanceStore();
+  const { funds, transactions } = store;
   const { notify } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const confirm = useConfirm();
 
-  const currentMonthPrefix = useMemo(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  }, []);
+  const sortedFunds = useMemo(() => sortFunds(funds), [funds]);
+  const totalAssets = useMemo(() => funds.reduce((s, f) => s + f.balance, 0), [funds]);
 
-  // Load from LocalStorage or pre-populate on mount
+  // ---- Điều hướng theo hash (#/funds) để nút Back hoạt động ----
+  const [tab, setTab] = useState<TabKey>(() => tabFromHash());
   useEffect(() => {
-    let storedFunds = localStorage.getItem(LOCAL_STORAGE_FUNDS_KEY);
-    let storedTx = localStorage.getItem(LOCAL_STORAGE_TX_KEY);
-
-    // If local storage has the old mock data (e.g., matching old fund names or IDs), force clear it to reset
-    if (storedFunds && (storedFunds.includes('Quỹ Chi Tiêu Hàng Ngày') || storedFunds.includes('fund-2') || storedFunds.includes('Quỹ Học Tập & Phát Triển') || storedFunds.includes('Quỹ Du Lịch Mơ Ước'))) {
-      localStorage.removeItem(LOCAL_STORAGE_FUNDS_KEY);
-      localStorage.removeItem(LOCAL_STORAGE_TX_KEY);
-      storedFunds = null;
-      storedTx = null;
-    }
-
-    if (storedFunds && storedTx) {
-      setFunds(JSON.parse(storedFunds));
-      setTransactions(JSON.parse(storedTx));
-    } else {
-      // First-time users get beautiful clean starter data
-      localStorage.setItem(LOCAL_STORAGE_FUNDS_KEY, JSON.stringify(INITIAL_FUNDS));
-      localStorage.setItem(LOCAL_STORAGE_TX_KEY, JSON.stringify(INITIAL_TRANSACTIONS));
-      setFunds(INITIAL_FUNDS);
-      setTransactions(INITIAL_TRANSACTIONS);
-    }
-    setIsLoaded(true);
+    const onHash = () => setTab(tabFromHash());
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  useEffect(() => {
+    document.title = tab === 'dashboard' ? APP_NAME : `${NAV_BY_KEY[tab].label} · ${APP_NAME}`;
+  }, [tab]);
+  const navigate = useCallback((next: TabKey) => {
+    if (tabFromHash() !== next) window.location.hash = `/${next}`;
+    setTab(next);
+    window.scrollTo({ top: 0 });
   }, []);
 
-  // Save changes to localStorage whenever state changes
-  const saveState = (updatedFunds: Fund[], updatedTx: Transaction[]) => {
-    localStorage.setItem(LOCAL_STORAGE_FUNDS_KEY, JSON.stringify(updatedFunds));
-    localStorage.setItem(LOCAL_STORAGE_TX_KEY, JSON.stringify(updatedTx));
+  // ---- Sao lưu ----
+  const [lastBackup, setLastBackup] = usePersistentState<string | null>(STORAGE_KEYS.lastBackup, null);
+  const daysSinceBackup = lastBackup ? Math.floor((Date.now() - new Date(lastBackup).getTime()) / 86400000) : null;
+  const needsBackup = daysSinceBackup === null || daysSinceBackup >= BACKUP_REMINDER_DAYS;
+  const backupLabel =
+    daysSinceBackup === null
+      ? 'Chưa sao lưu lần nào'
+      : daysSinceBackup === 0
+        ? 'Đã sao lưu hôm nay'
+        : `Lần sao lưu gần nhất: ${daysSinceBackup} ngày trước`;
+
+  useEffect(() => {
+    if (store.saveError) {
+      notify('Không lưu được dữ liệu vào trình duyệt (bộ nhớ đầy hoặc bị chặn). Hãy xuất file CSV để sao lưu ngay!', 'error', { duration: 8000 });
+    }
+  }, [store.saveError, notify]);
+
+  // ---- Sheet: ghi chép nhanh / sửa giao dịch ----
+  const [quickAdd, setQuickAdd] = useState<QuickAddState>({ open: false, key: 0 });
+  const openQuickAdd = useCallback((type?: TxKind, fundId?: string) => {
+    setQuickAdd((q) => ({ open: true, key: q.key + 1, type, fundId, editing: null }));
+  }, []);
+  const openEditTransaction = useCallback((tx: Transaction) => {
+    setQuickAdd((q) => ({ open: true, key: q.key + 1, editing: tx }));
+  }, []);
+  const closeQuickAdd = useCallback(() => setQuickAdd((q) => ({ ...q, open: false })), []);
+
+  // Mở từ phím tắt trên icon app (manifest shortcuts): ?quick=expense|income|transfer
+  const [launchQuick] = useState<TxKind | null>(() => {
+    const q = new URLSearchParams(window.location.search).get('quick');
+    return q === 'expense' || q === 'income' || q === 'transfer' ? q : null;
+  });
+  useEffect(() => {
+    if (!launchQuick) return;
+    openQuickAdd(launchQuick);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('quick');
+    window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+  }, [launchQuick, openQuickAdd]);
+
+  // ---- Phiên bản mới: bảng "Có gì mới" + thông báo cập nhật ----
+  const whatsNew = useWhatsNew(launchQuick !== null);
+  useEffect(
+    () =>
+      onUpdateReady(() =>
+        notify('Đã có phiên bản mới của ứng dụng 🎉', 'info', {
+          action: { label: 'Cập nhật', onClick: applyUpdate },
+          duration: 0,
+        }),
+      ),
+    [notify],
+  );
+
+  // ---- Sheet: quỹ ----
+  const [fundEditor, setFundEditor] = useState<{ open: boolean; key: number; fundId?: string }>({ open: false, key: 0 });
+  const [detailFundId, setDetailFundId] = useState<string | null>(null);
+  const [managementFundId, setManagementFundId] = useState<string | null>(null);
+  const editorFund = fundEditor.fundId ? funds.find((f) => f.id === fundEditor.fundId) || null : null;
+  const detailFund = detailFundId ? funds.find((f) => f.id === detailFundId) || null : null;
+  const managementFund = managementFundId ? funds.find((f) => f.id === managementFundId) || null : null;
+
+  const fundName = (id?: string) => funds.find((f) => f.id === id)?.name || 'quỹ';
+
+  // ---- Giao dịch ----
+  const describeTransaction = (tx: TransactionInput) =>
+    tx.type === 'transfer'
+      ? `Đã chuyển ${formatCurrency(tx.amount)} từ ${fundName(tx.fundId)} ➡️ ${fundName(tx.toFundId)}`
+      : tx.type === 'income'
+        ? `Đã bổ sung ${formatCurrency(tx.amount)} vào ${fundName(tx.fundId)}`
+        : `Đã ghi nhận chi tiêu ${formatCurrency(tx.amount)} từ ${fundName(tx.fundId)}`;
+
+  const handleAddTransaction = (tx: TransactionInput) => {
+    store.addTransaction(tx);
+    notify(describeTransaction(tx), 'success');
   };
 
-  // Add a new fund dynamically
-  const handleAddFund = (fundData: Omit<Fund, 'id' | 'createdAt'>) => {
-    const newFund: Fund = {
-      ...fundData,
-      id: `fund-${Date.now()}`,
-      createdAt: new Date().toISOString()
-    };
-    const nextFunds = [...funds, newFund];
-    setFunds(nextFunds);
-    saveState(nextFunds, transactions);
+  const handleQuickAddSubmit = (tx: TransactionInput) => {
+    if (quickAdd.editing) {
+      store.updateTransaction(quickAdd.editing.id, tx);
+      notify('Đã cập nhật giao dịch và tính lại số dư các quỹ', 'success');
+    } else {
+      handleAddTransaction(tx);
+    }
+    closeQuickAdd();
   };
 
-  // Delete a fund and all associated transactions
-  const handleDeleteFund = (fundId: string) => {
-    const nextFunds = funds.filter((f) => f.id !== fundId);
-    const nextTx = transactions.filter((t) => t.fundId !== fundId);
-    setFunds(nextFunds);
-    setTransactions(nextTx);
-    saveState(nextFunds, nextTx);
-  };
-
-  // Edit an existing fund's details and save
-  const handleEditFund = (updatedFund: Fund) => {
-    const nextFunds = funds.map((f) => (f.id === updatedFund.id ? updatedFund : f));
-    setFunds(nextFunds);
-    saveState(nextFunds, transactions);
-  };
-
-  // Add a new transaction (updates associated fund balance)
-  const handleAddTransaction = (txData: Omit<Transaction, 'id' | 'createdAt'>) => {
-    const newTx: Transaction = {
-      ...txData,
-      id: `tx-${Date.now()}`,
-      createdAt: new Date().toISOString()
-    };
-
-    // Update the balance of the linked fund(s)
-    const nextFunds = funds.map((f) => {
-      // Chuyển quỹ: trừ ở quỹ nguồn, cộng ở quỹ đích
-      if (txData.type === 'transfer') {
-        if (f.id === txData.fundId) {
-          return { ...f, balance: f.balance - txData.amount };
-        }
-        if (f.id === txData.toFundId) {
-          return { ...f, balance: f.balance + txData.amount };
-        }
-        return f;
-      }
-      if (f.id === txData.fundId) {
-        const balanceChange = txData.type === 'income' ? txData.amount : -txData.amount;
-        return {
-          ...f,
-          balance: f.balance + balanceChange
-        };
-      }
-      return f;
+  const handleDeleteTransaction = (id: string) => {
+    const tx = store.deleteTransaction(id);
+    if (!tx) return;
+    notify(`Đã xóa "${tx.category}" (${formatCurrency(tx.amount)}) và hoàn lại số dư`, 'info', {
+      action: {
+        label: 'Hoàn tác',
+        onClick: () => {
+          store.restoreTransaction(tx);
+          notify('Đã khôi phục giao dịch', 'success');
+        },
+      },
     });
-
-    const nextTx = [newTx, ...transactions];
-
-    setFunds(nextFunds);
-    setTransactions(nextTx);
-    saveState(nextFunds, nextTx);
   };
 
-  // Delete/Undo a transaction (reverts the balance changes on the associated fund)
-  const handleDeleteTransaction = (txId: string) => {
-    const targetTx = transactions.find((t) => t.id === txId);
-    if (!targetTx) return;
-
-    // Revert balance of the linked fund(s)
-    const nextFunds = funds.map((f) => {
-      // Hoàn tác chuyển quỹ: trả lại tiền cho quỹ nguồn, trừ ở quỹ đích
-      if (targetTx.type === 'transfer') {
-        if (f.id === targetTx.fundId) {
-          return { ...f, balance: f.balance + targetTx.amount };
-        }
-        if (f.id === targetTx.toFundId) {
-          return { ...f, balance: f.balance - targetTx.amount };
-        }
-        return f;
-      }
-      if (f.id === targetTx.fundId) {
-        // If it was an expense, add it back. If it was income, deduct it.
-        const balanceRevert = targetTx.type === 'expense' ? targetTx.amount : -targetTx.amount;
-        return {
-          ...f,
-          balance: f.balance + balanceRevert
-        };
-      }
-      return f;
-    });
-
-    const nextTx = transactions.filter((t) => t.id !== txId);
-
-    setFunds(nextFunds);
-    setTransactions(nextTx);
-    saveState(nextFunds, nextTx);
-    notify(`Đã xóa giao dịch "${targetTx.category}" (${formatCurrency(targetTx.amount)}) và hoàn lại số dư`, 'info');
-  };
-
-  // Clear all transaction logs without affecting or reverting the fund balances
   const handleClearTransactions = () => {
     const count = transactions.length;
-    setTransactions([]);
-    saveState(funds, []);
+    store.clearTransactions();
     notify(`Đã dọn dẹp ${count} dòng nhật ký giao dịch`, 'info');
   };
 
-  // Export toàn bộ dữ liệu (quỹ + giao dịch) ra file CSV để sao lưu
+  // ---- Quỹ ----
+  const openCreateFund = () => setFundEditor((s) => ({ open: true, key: s.key + 1, fundId: undefined }));
+  const openEditFund = (fund: Fund) => setFundEditor((s) => ({ open: true, key: s.key + 1, fundId: fund.id }));
+
+  const handleSaveFund = (data: FundInput, original?: Fund) => {
+    if (original) {
+      store.updateFund({ ...original, ...data });
+      notify(`Đã lưu thay đổi cho ${data.name}`, 'success');
+    } else {
+      store.addFund(data);
+      notify(`Đã tạo ${data.name}`, 'success');
+    }
+    setFundEditor((s) => ({ ...s, open: false }));
+  };
+
+  const handleTogglePin = (fund: Fund) => {
+    store.updateFund({ ...fund, pinned: !fund.pinned });
+    notify(fund.pinned ? `Đã bỏ ghim ${fund.name}` : `Đã ghim ${fund.name} lên đầu`, 'info');
+  };
+
+  const handleDeleteFund = (fundId: string) => {
+    const fund = funds.find((f) => f.id === fundId);
+    store.deleteFund(fundId);
+    if (detailFundId === fundId) setDetailFundId(null);
+    notify(`Đã xóa ${fund?.name || 'quỹ'} cùng các giao dịch liên quan`, 'info');
+  };
+
+  const confirmDeleteFund = async (fund: Fund) => {
+    const ok = await confirm({
+      title: `Xóa ${fund.name}?`,
+      tone: 'danger',
+      confirmText: 'Xóa quỹ',
+      message: (
+        <>
+          Quỹ và <strong>toàn bộ giao dịch liên quan</strong> sẽ bị xóa vĩnh viễn. Hãy sao lưu file CSV trước nếu chưa chắc chắn.
+        </>
+      ),
+    });
+    if (ok) handleDeleteFund(fund.id);
+  };
+
+  // ---- Xuất / nhập CSV ----
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleExportCsv = async () => {
-    const csv = exportToCsv(funds, transactions);
-    const csvContent = '﻿' + csv; // BOM để Excel đọc đúng tiếng Việt
+    const csvContent = '﻿' + exportToCsv(funds, transactions); // BOM để Excel đọc đúng tiếng Việt
     const now = new Date();
     const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
     const filename = `nhat-ky-tai-chinh-${stamp}.csv`;
+    const markBackedUp = () => {
+      setLastBackup(new Date().toISOString());
+      notify('Đã xuất file sao lưu CSV', 'success');
+    };
 
-    // iOS/Safari: dùng Web Share API để hiện bảng chia sẻ ("Lưu vào Tệp", AirDrop...)
-    // vì thẻ <a download> không tải được file về thư mục trên iPhone.
+    // iOS/Safari: dùng Web Share API ("Lưu vào Tệp", AirDrop...) vì <a download> không lưu được về thư mục
     try {
       const file = new File([csvContent], filename, { type: 'text/csv' });
       const nav = navigator as Navigator & {
@@ -194,15 +233,14 @@ export default function App() {
       };
       if (nav.canShare && nav.share && nav.canShare({ files: [file] })) {
         await nav.share({ files: [file], title: filename });
+        markBackedUp();
         return;
       }
     } catch (err) {
-      // Người dùng bấm Hủy trên bảng chia sẻ -> dừng, không tải lại
-      if (err instanceof Error && err.name === 'AbortError') return;
-      // Lỗi khác (không hỗ trợ) -> rơi xuống cách tải thông thường bên dưới
+      if (err instanceof Error && err.name === 'AbortError') return; // người dùng bấm Hủy
     }
 
-    // Fallback (desktop/Android): tải xuống bằng thẻ <a download>
+    // Desktop / Android: tải xuống trực tiếp
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -212,412 +250,231 @@ export default function App() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    markBackedUp();
   };
 
-  // Import dữ liệu từ file CSV (ghi đè dữ liệu hiện tại sau khi xác nhận)
-  const handleImportCsv = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = ''; // cho phép chọn lại cùng file lần sau
     if (!file) return;
-
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
-        const text = String(event.target?.result || '');
-        const { funds: importedFunds, transactions: importedTx } = parseCsv(text);
-        if (
-          window.confirm(
-            `Tải lên ${importedFunds.length} quỹ và ${importedTx.length} giao dịch từ file CSV? Dữ liệu hiện tại sẽ được thay thế.`
-          )
-        ) {
-          setFunds(importedFunds);
-          setTransactions(importedTx);
-          saveState(importedFunds, importedTx);
-        }
+        const parsed = parseCsv(String(event.target?.result || ''));
+        const ok = await confirm({
+          title: 'Khôi phục từ file CSV?',
+          tone: 'danger',
+          confirmText: 'Thay thế dữ liệu',
+          message: (
+            <>
+              Tải lên <strong>{parsed.funds.length} quỹ</strong> và <strong>{parsed.transactions.length} giao dịch</strong> từ “{file.name}”.
+              Dữ liệu hiện tại sẽ được <strong>thay thế hoàn toàn</strong>.
+            </>
+          ),
+        });
+        if (!ok) return;
+        store.replaceAll(parsed.funds, parsed.transactions);
+        setDetailFundId(null);
+        notify(`Đã khôi phục ${parsed.funds.length} quỹ và ${parsed.transactions.length} giao dịch`, 'success');
       } catch (err) {
-        window.alert(`Không thể đọc file CSV: ${err instanceof Error ? err.message : 'Lỗi không xác định'}`);
+        notify(`Không thể đọc file CSV: ${err instanceof Error ? err.message : 'Lỗi không xác định'}`, 'error');
       }
     };
     reader.readAsText(file);
-    // Reset để có thể chọn lại cùng một file lần sau
-    e.target.value = '';
   };
 
-  // Financial summary metrics
-  const financialSummary = useMemo(() => {
-    let totalAssets = 0;
-    let cashAssets = 0;
-    let bankAssets = 0;
+  const openImport = () => fileInputRef.current?.click();
 
-    funds.forEach((f) => {
-      totalAssets += f.balance;
-      if (f.type === 'cash') {
-        cashAssets += f.balance;
-      } else {
-        bankAssets += f.balance;
-      }
-    });
+  // ---- Phím tắt: N = ghi chép nhanh ----
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== 'n' || e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable)) return;
+      if (document.querySelector('[role="dialog"]')) return;
+      e.preventDefault();
+      openQuickAdd();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [openQuickAdd]);
 
-    return { totalAssets, cashAssets, bankAssets };
-  }, [funds]);
-
-  // Danh sách quỹ: quỹ ghim lên đầu, còn lại sắp theo bảng chữ cái (tiếng Việt)
-  const sortedFunds = useMemo(
-    () =>
-      [...funds].sort(
-        (a, b) =>
-          (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) ||
-          a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' })
-      ),
-    [funds]
-  );
-
-  // Ghim / bỏ ghim một quỹ
-  const handleTogglePin = (fund: Fund) => {
-    handleEditFund({ ...fund, pinned: !fund.pinned });
+  // ---- Nội dung trang ----
+  const renderPage = () => {
+    switch (tab) {
+      case 'dashboard':
+        return (
+          <DashboardPage
+            funds={sortedFunds}
+            transactions={transactions}
+            needsBackup={needsBackup}
+            backupLabel={backupLabel}
+            onNavigate={navigate}
+            onQuickAdd={openQuickAdd}
+            onOpenFund={(f) => setDetailFundId(f.id)}
+            onEditTransaction={openEditTransaction}
+            onBackup={handleExportCsv}
+          />
+        );
+      case 'funds':
+        return (
+          <FundsPage
+            funds={sortedFunds}
+            transactions={transactions}
+            onCreateFund={openCreateFund}
+            onOpenFund={(f) => setDetailFundId(f.id)}
+            onEditFund={openEditFund}
+            onDeleteFund={handleDeleteFund}
+            onTogglePin={handleTogglePin}
+            onOpenManagement={(f) => setManagementFundId(f.id)}
+          />
+        );
+      case 'transactions':
+        return (
+          <TransactionsPage
+            funds={sortedFunds}
+            transactions={transactions}
+            onAdd={handleAddTransaction}
+            onEdit={openEditTransaction}
+            onDelete={handleDeleteTransaction}
+            onClear={handleClearTransactions}
+            onQuickAdd={() => openQuickAdd()}
+          />
+        );
+      case 'allocation':
+        return <AllocationPlanner funds={sortedFunds} transactions={transactions} onUpdateFund={store.updateFund} />;
+      case 'reports':
+        return (
+          <div>
+            <PageHeader title={NAV_BY_KEY.reports.label} description={NAV_BY_KEY.reports.description} />
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center gap-2 py-24 text-sm font-semibold text-slate-500">
+                  <Loader2 className="w-5 h-5 animate-spin text-indigo-600" /> Đang tải báo cáo...
+                </div>
+              }
+            >
+              <FinancialCharts transactions={transactions} funds={sortedFunds} />
+            </Suspense>
+          </div>
+        );
+      case 'settings':
+        return (
+          <SettingsPage
+            funds={funds}
+            transactions={transactions}
+            backupLabel={backupLabel}
+            needsBackup={needsBackup}
+            onExport={handleExportCsv}
+            onImport={openImport}
+            onShowWhatsNew={whatsNew.show}
+          />
+        );
+    }
   };
-
-  if (!isLoaded) {
-    return (
-      <div id="loading-spinner" className="min-h-screen bg-slate-50 flex flex-col items-center justify-center font-sans">
-        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-slate-500 font-semibold text-sm mt-4">Đang tải nhật ký tài chính của bạn...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen glass-bg text-slate-800 font-sans selection:bg-indigo-100 selection:text-indigo-900">
-      
-      {/* HEADER SECTION */}
-      <header id="main-header" className="backdrop-blur-md bg-white/40 border-b border-white/20 py-6 px-4 md:px-8 sticky top-0 z-40 shadow-xs">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 bg-indigo-600 text-white rounded-xl">
-                <CircleDollarSign className="w-6 h-6" />
-              </span>
-              <h1 className="font-display font-black text-2xl tracking-tight text-slate-900">
-                Nhật Ký Tài Chính
-              </h1>
-            </div>
-            <p className="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-wider">
-              Hãy quản lý túi tiền của bạn nhé ❤️
-            </p>
-          </div>
+      <Sidebar active={tab} onNavigate={navigate} backupLabel={backupLabel} needsBackup={needsBackup} onBackup={handleExportCsv} />
 
-          {/* Quick Actions & Net Worth */}
-          <div className="flex items-center gap-3 shrink-0">
-            {/* Quick Net Worth Overview */}
-            <div className="glass-pill p-3 rounded-2xl flex items-center gap-4">
-              <div className="p-2.5 bg-indigo-100/60 rounded-xl text-indigo-700">
-                <Landmark className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tổng số dư</p>
-                <p className="font-display font-black text-xl text-slate-800 tracking-tight">
-                  {format(financialSummary.totalAssets)}
-                </p>
-              </div>
-            </div>
+      <div className="lg:pl-64 min-h-screen flex flex-col">
+        <TopBar
+          tab={tab}
+          totalAssets={totalAssets}
+          onExport={handleExportCsv}
+          onImport={openImport}
+          onQuickAdd={() => openQuickAdd()}
+          onOpenSettings={() => navigate('settings')}
+        />
 
-            {/* Toggle hiển thị / ẩn số tiền */}
-            <button
-              id="toggle-privacy-btn"
-              onClick={toggle}
-              className="p-3 bg-white/50 hover:bg-white/80 border border-white/50 hover:border-indigo-300 text-slate-600 hover:text-indigo-600 rounded-2xl transition-all flex items-center gap-1.5 text-xs font-black shadow-2xs hover:shadow-xs shrink-0 cursor-pointer"
-              title={hidden ? 'Hiện số tiền' : 'Ẩn số tiền'}
+        <main className="flex-1 w-full max-w-6xl mx-auto px-4 lg:px-8 pt-5 sm:pt-6 pb-6">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={tab}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.16 }}
             >
-              {hidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              <span className="hidden sm:inline">{hidden ? 'Hiện số' : 'Ẩn số'}</span>
-            </button>
-
-            {/* Lưu / Tải dữ liệu CSV (cột dọc nhỏ) */}
-            <div className="flex flex-col gap-1 shrink-0">
-              <button
-                id="export-csv-btn"
-                onClick={handleExportCsv}
-                className="px-2.5 py-1.5 bg-white/50 hover:bg-white/80 border border-white/50 hover:border-emerald-300 text-slate-600 hover:text-emerald-600 rounded-lg transition-all flex items-center gap-1.5 text-[11px] font-bold cursor-pointer"
-                title="Lưu toàn bộ dữ liệu ra file CSV để sao lưu"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Lưu CSV</span>
-              </button>
-              <button
-                id="import-csv-btn"
-                onClick={() => fileInputRef.current?.click()}
-                className="px-2.5 py-1.5 bg-white/50 hover:bg-white/80 border border-white/50 hover:border-indigo-300 text-slate-600 hover:text-indigo-600 rounded-lg transition-all flex items-center gap-1.5 text-[11px] font-bold cursor-pointer"
-                title="Tải dữ liệu từ file CSV đã sao lưu"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span>Tải CSV</span>
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv,text/csv"
-                onChange={handleImportCsv}
-                className="hidden"
-              />
-            </div>
-
-          </div>
-        </div>
-      </header>
-
-      {/* BODY CONTENT CONTAINER */}
-      <main className="max-w-7xl mx-auto px-4 md:px-8 py-8">
-        
-        {/* TOTAL ASSETS SUB-DETAILS GRID */}
-        <div id="summary-cards-grid" className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-          <div className="glass-card p-5 rounded-2xl shadow-xs flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-slate-500 uppercase">Tiền Mặt & Ví</p>
-              <p className="font-display font-extrabold text-xl text-emerald-600 mt-1">
-                {format(financialSummary.cashAssets)}
-              </p>
-            </div>
-            <span className="p-3 bg-emerald-100/50 text-emerald-700 rounded-xl">
-              <Wallet className="w-5 h-5" />
-            </span>
-          </div>
-
-          <div className="glass-card p-5 rounded-2xl shadow-xs flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-slate-500 uppercase">Tài Khoản Ngân Hàng</p>
-              <p className="font-display font-extrabold text-xl text-indigo-600 mt-1">
-                {format(financialSummary.bankAssets)}
-              </p>
-            </div>
-            <span className="p-3 bg-indigo-100/50 text-indigo-700 rounded-xl">
-              <BankIcon className="w-5 h-5" />
-            </span>
-          </div>
-        </div>
-
-        {/* TABS SWITCHER */}
-        <div className="flex bg-white/30 backdrop-blur-md border border-white/30 p-1.5 rounded-2xl mb-8 max-w-2xl mx-auto shadow-xs">
-          <button
-            onClick={() => setActiveTab('funds')}
-            className="flex-1 py-3 px-4 rounded-xl font-display font-bold text-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer relative"
-          >
-            {activeTab === 'funds' && (
-              <motion.div
-                layoutId="active-main-tab"
-                className="absolute inset-0 bg-white/80 border border-white/50 rounded-xl shadow-xs"
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              />
-            )}
-            <Layers className={`w-4 h-4 z-10 ${activeTab === 'funds' ? 'text-indigo-600' : 'text-slate-500'}`} />
-            <span className={`z-10 text-xs sm:text-sm ${activeTab === 'funds' ? 'text-indigo-950 font-black' : 'text-slate-600 font-semibold'}`}>Quỹ & Tài Sản</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('transactions')}
-            className="flex-1 py-3 px-4 rounded-xl font-display font-bold text-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer relative"
-          >
-            {activeTab === 'transactions' && (
-              <motion.div
-                layoutId="active-main-tab"
-                className="absolute inset-0 bg-white/80 border border-white/50 rounded-xl shadow-xs"
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              />
-            )}
-            <History className={`w-4 h-4 z-10 ${activeTab === 'transactions' ? 'text-indigo-600' : 'text-slate-500'}`} />
-            <span className={`z-10 text-xs sm:text-sm ${activeTab === 'transactions' ? 'text-indigo-950 font-black' : 'text-slate-600 font-semibold'}`}>Sổ Giao Dịch</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('allocation')}
-            className="flex-1 py-3 px-4 rounded-xl font-display font-bold text-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer relative"
-          >
-            {activeTab === 'allocation' && (
-              <motion.div
-                layoutId="active-main-tab"
-                className="absolute inset-0 bg-white/80 border border-white/50 rounded-xl shadow-xs"
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              />
-            )}
-            <PieChart className={`w-4 h-4 z-10 ${activeTab === 'allocation' ? 'text-indigo-600' : 'text-slate-500'}`} />
-            <span className={`z-10 text-xs sm:text-sm ${activeTab === 'allocation' ? 'text-indigo-950 font-black' : 'text-slate-600 font-semibold'}`}>Phân Bổ</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('reports')}
-            className="flex-1 py-3 px-4 rounded-xl font-display font-bold text-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer relative"
-          >
-            {activeTab === 'reports' && (
-              <motion.div
-                layoutId="active-main-tab"
-                className="absolute inset-0 bg-white/80 border border-white/50 rounded-xl shadow-xs"
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              />
-            )}
-            <BarChart3 className={`w-4 h-4 z-10 ${activeTab === 'reports' ? 'text-indigo-600' : 'text-slate-500'}`} />
-            <span className={`z-10 text-xs sm:text-sm ${activeTab === 'reports' ? 'text-indigo-950 font-black' : 'text-slate-600 font-semibold'}`}>Báo Cáo Phân Tích</span>
-          </button>
-        </div>
-
-        {/* TAB CONTENTS CONTAINER */}
-        <div className="min-h-[450px]">
-          <AnimatePresence mode="wait">
-            {activeTab === 'funds' && (
-              <motion.div
-                key="funds-tab"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.2 }}
-                className="space-y-6"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                  <div>
-                    <h2 className="font-display font-extrabold text-xl text-slate-800 flex items-center gap-2">
-                      <Layers className="w-5 h-5 text-indigo-600" />
-                      Danh Sách Quỹ Tài Chính
-                    </h2>
-                    <p className="text-xs text-slate-500 mt-1">Cơ cấu và phân chia tiền mặt, tài khoản ngân hàng của bạn</p>
-                  </div>
-                  <span className="text-xs font-bold px-3 py-1.5 bg-white/40 border border-white/50 rounded-lg text-slate-600 font-mono self-start sm:self-center">
-                    Tổng cộng: {funds.length} Quỹ
-                  </span>
-                </div>
-
-                {/* Funds Bento Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <AnimatePresence mode="popLayout">
-                    {sortedFunds.map((fund) => {
-                      const currentMonthSpent = transactions
-                        .filter((t) => t.fundId === fund.id && t.type === 'expense' && t.date.startsWith(currentMonthPrefix))
-                        .reduce((sum, t) => sum + t.amount, 0);
-                      return (
-                        <FundCard
-                          key={fund.id}
-                          fund={fund}
-                          onDelete={handleDeleteFund}
-                          onEdit={(f) => setEditingFund(f)}
-                          onOpenManagement={(f) => setManagementFund(f)}
-                          onTogglePin={handleTogglePin}
-                          canDelete={funds.length > 1}
-                          currentMonthSpent={currentMonthSpent}
-                        />
-                      );
-                    })}
-                  </AnimatePresence>
-
-                  <div className="h-full flex flex-col justify-stretch">
-                    <FundForm onAddFund={handleAddFund} />
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {activeTab === 'transactions' && (
-              <motion.div
-                key="transactions-tab"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.2 }}
-                className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
-              >
-                {/* Left: Transaction entry form */}
-                <div className="lg:col-span-5 space-y-4">
-                  <div className="mb-2">
-                    <h2 className="font-display font-extrabold text-xl text-slate-800 flex items-center gap-2">
-                      <Plus className="w-5 h-5 text-indigo-600" />
-                      Ghi Chép Mới
-                    </h2>
-                    <p className="text-xs text-slate-500 mt-1">Ghi nhận nhanh thu nhập hoặc chi phí phát sinh</p>
-                  </div>
-                  <TransactionForm
-                    funds={sortedFunds}
-                    onAddTransaction={handleAddTransaction}
-                  />
-                </div>
-
-                {/* Right: History log with full width */}
-                <div className="lg:col-span-7">
-                  <TransactionHistory
-                    transactions={transactions}
-                    funds={sortedFunds}
-                    onDeleteTransaction={handleDeleteTransaction}
-                    onClearTransactions={handleClearTransactions}
-                  />
-                </div>
-              </motion.div>
-            )}
-
-            {activeTab === 'allocation' && (
-              <motion.div
-                key="allocation-tab"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.2 }}
-              >
-                <AllocationPlanner
-                  funds={sortedFunds}
-                  transactions={transactions}
-                  onUpdateFund={handleEditFund}
-                />
-              </motion.div>
-            )}
-
-            {activeTab === 'reports' && (
-              <motion.div
-                key="reports-tab"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.2 }}
-                className="space-y-6"
-              >
-                <div className="mb-2">
-                  <h2 className="font-display font-extrabold text-xl text-slate-800 flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-indigo-600" />
-                    Báo Cáo & Phân Tích Dòng Tiền
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-1">Trực quan hóa thu nhập, chi tiêu và cơ cấu dòng tiền</p>
-                </div>
-                
-                <FinancialCharts
-                  transactions={transactions}
-                  funds={sortedFunds}
-                />
-              </motion.div>
-            )}
+              {renderPage()}
+            </motion.div>
           </AnimatePresence>
-        </div>
-      </main>
+        </main>
 
-      {/* FOOTER */}
-      <footer id="main-footer" className="bg-white border-t border-slate-200 mt-16 py-8 px-4 text-center text-xs text-slate-400 font-medium">
-        <p className="max-w-2xl mx-auto leading-relaxed">
-          Lưu ý nhỏ nè ❤️ Nhật ký được lưu ngay trên trình duyệt của bạn. Vì vậy đừng xóa dữ liệu duyệt web (lịch sử / cache) và lưu ý khi đổi máy hoặc đổi trình duyệt — nếu không bạn có thể bị mất toàn bộ nhật ký đã ghi. Hãy giữ gìn cẩn thận nha!
-        </p>
-      </footer>
+        <footer
+          id="main-footer"
+          className="px-4 pt-2 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-8 text-center text-xs text-slate-400 font-medium"
+        >
+          <p className="max-w-2xl mx-auto leading-relaxed">
+            Lưu ý nhỏ nè ❤️ Nhật ký được lưu ngay trên trình duyệt của bạn. Vì vậy đừng xóa dữ liệu duyệt web (lịch sử / cache) và lưu ý khi đổi máy hoặc đổi trình duyệt — nếu không bạn có thể bị mất toàn bộ nhật ký đã ghi. Hãy giữ gìn cẩn thận nha!
+          </p>
+        </footer>
+      </div>
 
-      {/* Edit Fund Modal */}
-      {editingFund && (
-        <EditFundModal
-          fund={editingFund}
-          onClose={() => setEditingFund(null)}
-          onSave={handleEditFund}
-        />
+      <BottomNav active={tab} onNavigate={navigate} />
+
+      {/* Nút ghi chép nhanh (mobile) */}
+      {tab !== 'settings' && (
+        <motion.button
+          id="fab-quick-add"
+          onClick={() => openQuickAdd()}
+          whileTap={{ scale: 0.9 }}
+          className="lg:hidden fixed z-40 right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-xl shadow-indigo-300/70 flex items-center justify-center cursor-pointer"
+          aria-label="Ghi chép nhanh"
+        >
+          <Plus className="w-7 h-7" strokeWidth={2.5} />
+        </motion.button>
       )}
 
-      {/* Management Method Modal */}
-      {managementFund && (
-        <ManagementModal
-          fund={managementFund}
-          onClose={() => setManagementFund(null)}
-          onSave={(f) => {
-            handleEditFund(f);
-            setManagementFund(f);
-          }}
-        />
-      )}
+      <input ref={fileInputRef} type="file" accept=".csv,text/csv" onChange={handleImportFile} className="hidden" />
 
+      <FundDetailSheet
+        fund={detailFund}
+        onClose={() => setDetailFundId(null)}
+        funds={sortedFunds}
+        transactions={transactions}
+        canDelete={funds.length > 1}
+        onQuickAdd={(type, fundId) => openQuickAdd(type, fundId)}
+        onEdit={openEditFund}
+        onTogglePin={handleTogglePin}
+        onOpenManagement={(f) => setManagementFundId(f.id)}
+        onEditTransaction={openEditTransaction}
+        onDelete={confirmDeleteFund}
+      />
+
+      <FundEditorSheet
+        open={fundEditor.open}
+        sessionKey={fundEditor.key}
+        fund={editorFund}
+        onClose={() => setFundEditor((s) => ({ ...s, open: false }))}
+        onSave={handleSaveFund}
+      />
+
+      <ManagementModal
+        fund={managementFund}
+        onClose={() => setManagementFundId(null)}
+        onSave={(f) => {
+          store.updateFund(f);
+          notify('Đã lưu cách quản lý', 'success');
+        }}
+      />
+
+      <QuickAddSheet
+        open={quickAdd.open}
+        sessionKey={quickAdd.key}
+        onClose={closeQuickAdd}
+        funds={sortedFunds}
+        initialType={quickAdd.type}
+        initialFundId={quickAdd.fundId}
+        editing={quickAdd.editing}
+        onSubmit={handleQuickAddSubmit}
+        onDelete={(tx) => {
+          closeQuickAdd();
+          handleDeleteTransaction(tx.id);
+        }}
+      />
+
+      <WhatsNewSheet open={whatsNew.open} onClose={whatsNew.close} />
     </div>
   );
 }
