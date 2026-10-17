@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Sparkles,
   Lock,
+  KeyRound,
 } from 'lucide-react';
 import { Fund, Transaction } from '../types';
 import { usePrivacy } from '../PrivacyContext';
@@ -24,6 +25,9 @@ import { useToast } from '../ToastContext';
 import { SectionCard, PageHeader } from '../components/ui/primitives';
 import { APP_NAME, APP_VERSION } from '../config';
 import { NAV_BY_KEY } from '../nav';
+import { useAppLock } from '../lock/AppLock';
+import PinSetupSheet, { PinSheetMode } from '../lock/PinSetupSheet';
+import { AUTO_LOCK_OPTIONS } from '../lock/pin';
 
 interface SettingsPageProps {
   funds: Fund[];
@@ -35,15 +39,17 @@ interface SettingsPageProps {
   onShowWhatsNew: () => void;
 }
 
-function Switch({ checked, onChange, id }: { checked: boolean; onChange: () => void; id?: string }) {
+function Switch({ checked, onChange, id, disabled, label }: { checked: boolean; onChange: () => void; id?: string; disabled?: boolean; label?: string }) {
   return (
     <button
       id={id}
       type="button"
       role="switch"
       aria-checked={checked}
+      aria-label={label}
       onClick={onChange}
-      className={`relative shrink-0 w-12 h-7 rounded-full transition-colors cursor-pointer ${checked ? 'bg-indigo-600' : 'bg-slate-300'}`}
+      disabled={disabled}
+      className={`relative shrink-0 w-12 h-7 rounded-full transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-default ${checked ? 'bg-indigo-600' : 'bg-slate-300'}`}
     >
       <span
         className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-5' : ''}`}
@@ -67,6 +73,8 @@ export default function SettingsPage({
   const storage = useStoragePersistence();
   const { notify } = useToast();
   const [checking, setChecking] = useState(false);
+  const lock = useAppLock();
+  const [pinSheet, setPinSheet] = useState<PinSheetMode | null>(null);
   const nav = NAV_BY_KEY.settings;
 
   const storageKB = useMemo(() => {
@@ -153,9 +161,88 @@ export default function SettingsPage({
               Che toàn bộ số dư bằng •••• (ghi nhớ cả khi mở lại app). Con mắt trên từng quỹ mở riêng quỹ đó; số tài khoản chỉ hiện đầy đủ khi tắt chế độ này.
             </p>
           </div>
-          <Switch id="settings-privacy-switch" checked={hidden} onChange={toggle} />
+          <Switch id="settings-privacy-switch" checked={hidden} onChange={toggle} label="Ẩn số tiền" />
         </div>
       </SectionCard>
+
+      {/* Khóa ứng dụng */}
+      <SectionCard id="settings-lock" title="Khóa ứng dụng" icon={<Lock className="w-4 h-4 text-indigo-500" />}>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-slate-800">Khóa bằng mã PIN</p>
+            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+              Khi bật, mỗi lần mở web phải nhập mã PIN (4 hoặc 6 số) mới xem được nhật ký.
+            </p>
+          </div>
+          <Switch
+            id="settings-lock-switch"
+            label="Khóa bằng mã PIN"
+            checked={lock.enabled}
+            disabled={!lock.supported}
+            onChange={() => setPinSheet(lock.enabled ? 'disable' : 'create')}
+          />
+        </div>
+
+        {lock.enabled && (
+          <div className="mt-3 pt-3 border-t border-slate-100 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <label htmlFor="settings-autolock-select" className="text-sm font-semibold text-slate-800">
+                Tự khóa khi rời ứng dụng
+              </label>
+              <select
+                id="settings-autolock-select"
+                value={lock.autoLock}
+                onChange={(e) => {
+                  lock.setAutoLock(Number(e.target.value));
+                  notify('Đã lưu thời gian tự khóa', 'success');
+                }}
+                className="shrink-0 px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-base sm:text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-100 cursor-pointer"
+              >
+                {AUTO_LOCK_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                id="settings-change-pin-btn"
+                type="button"
+                onClick={() => setPinSheet('change')}
+                className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold transition-colors cursor-pointer"
+              >
+                <KeyRound className="w-4 h-4" /> Đổi mã PIN
+              </button>
+              <button
+                id="settings-lock-now-btn"
+                type="button"
+                onClick={lock.lockNow}
+                className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-700 text-white text-sm font-bold transition-colors cursor-pointer"
+              >
+                <Lock className="w-4 h-4" /> Khóa ngay
+              </button>
+            </div>
+          </div>
+        )}
+
+        <p className="mt-3 text-[11px] text-slate-400 leading-relaxed">
+          {lock.supported
+            ? 'Mã PIN chỉ lưu dạng mã hóa một chiều trên máy này. Nếu quên, bạn chỉ mở lại được bằng file CSV sao lưu — hãy sao lưu thường xuyên. Khóa giúp người khác không xem được nhật ký khi cầm máy của bạn.'
+            : 'Trình duyệt này chưa hỗ trợ khóa bằng mã PIN (cần mở ứng dụng bằng đường dẫn https).'}
+        </p>
+      </SectionCard>
+
+      <PinSetupSheet
+        mode={pinSheet}
+        onClose={() => setPinSheet(null)}
+        onDone={(message) => {
+          setPinSheet(null);
+          notify(message, 'success');
+        }}
+        needsBackup={needsBackup}
+        onBackup={onExport}
+      />
 
       {/* Cài app */}
       <SectionCard title="Cài lên màn hình chính" icon={<Smartphone className="w-4 h-4 text-indigo-500" />}>
@@ -254,6 +341,7 @@ export default function SettingsPage({
         <div className="space-y-2 text-sm">
           {[
             { key: 'N', desc: 'Ghi chép nhanh' },
+            { key: 'L', desc: 'Khóa ứng dụng (khi đã bật mã PIN)' },
             { key: 'Esc', desc: 'Đóng cửa sổ đang mở' },
           ].map((s) => (
             <div key={s.key} className="flex items-center justify-between">

@@ -8,6 +8,7 @@ import { useToast } from './ToastContext';
 import { useConfirm } from './DialogContext';
 import { usePersistentState } from './hooks';
 import { applyUpdate, onUpdateReady } from './pwa/register';
+import { useAppLock } from './lock/AppLock';
 import { STORAGE_KEYS, BACKUP_REMINDER_DAYS, APP_NAME } from './config';
 import { sortFunds, TransactionInput } from './ledger';
 import { formatCurrency } from './utils';
@@ -18,7 +19,6 @@ import BottomNav from './components/layout/BottomNav';
 import DashboardPage from './pages/DashboardPage';
 import FundsPage from './pages/FundsPage';
 import TransactionsPage from './pages/TransactionsPage';
-import SettingsPage from './pages/SettingsPage';
 import AllocationPlanner from './components/AllocationPlanner';
 import QuickAddSheet from './components/QuickAddSheet';
 import FundEditorSheet, { FundInput } from './components/FundEditorSheet';
@@ -27,8 +27,15 @@ import ManagementModal from './components/ManagementModal';
 import WhatsNewSheet, { useWhatsNew } from './components/WhatsNewSheet';
 import { TxKind } from './components/TransactionForm';
 
-// Trang Báo cáo (lịch + biểu đồ) chỉ tải khi mở tab để app khởi động nhanh hơn
+// Trang Báo cáo (lịch + biểu đồ) và Cài đặt chỉ tải khi mở tab để app khởi động nhanh hơn
 const ReportsPage = lazy(() => import('./pages/ReportsPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+
+const pageFallback = (
+  <div className="flex items-center justify-center gap-2 py-24 text-sm font-semibold text-slate-500">
+    <Loader2 className="w-5 h-5 animate-spin text-indigo-600" /> Đang tải...
+  </div>
+);
 
 interface QuickAddState {
   open: boolean;
@@ -285,19 +292,27 @@ export default function App() {
 
   const openImport = () => fileInputRef.current?.click();
 
-  // ---- Phím tắt: N = ghi chép nhanh ----
+  // ---- Phím tắt: N = ghi chép nhanh, L = khóa ứng dụng ----
+  const { enabled: lockEnabled, lockNow } = useAppLock();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() !== 'n' || e.metaKey || e.ctrlKey || e.altKey) return;
+      const key = e.key.toLowerCase();
+      if ((key !== 'n' && key !== 'l') || e.metaKey || e.ctrlKey || e.altKey) return;
       const target = e.target as HTMLElement | null;
       if (target && (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable)) return;
       if (document.querySelector('[role="dialog"]')) return;
+      if (key === 'l') {
+        if (!lockEnabled) return;
+        e.preventDefault();
+        lockNow();
+        return;
+      }
       e.preventDefault();
       openQuickAdd();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [openQuickAdd]);
+  }, [openQuickAdd, lockEnabled, lockNow]);
 
   // ---- Nội dung trang ----
   const renderPage = () => {
@@ -345,13 +360,7 @@ export default function App() {
         return <AllocationPlanner funds={sortedFunds} transactions={transactions} onUpdateFund={store.updateFund} />;
       case 'reports':
         return (
-          <Suspense
-            fallback={
-              <div className="flex items-center justify-center gap-2 py-24 text-sm font-semibold text-slate-500">
-                <Loader2 className="w-5 h-5 animate-spin text-indigo-600" /> Đang tải báo cáo...
-              </div>
-            }
-          >
+          <Suspense fallback={pageFallback}>
             <ReportsPage
               funds={sortedFunds}
               transactions={transactions}
@@ -362,15 +371,17 @@ export default function App() {
         );
       case 'settings':
         return (
-          <SettingsPage
-            funds={funds}
-            transactions={transactions}
-            backupLabel={backupLabel}
-            needsBackup={needsBackup}
-            onExport={handleExportCsv}
-            onImport={openImport}
-            onShowWhatsNew={whatsNew.show}
-          />
+          <Suspense fallback={pageFallback}>
+            <SettingsPage
+              funds={funds}
+              transactions={transactions}
+              backupLabel={backupLabel}
+              needsBackup={needsBackup}
+              onExport={handleExportCsv}
+              onImport={openImport}
+              onShowWhatsNew={whatsNew.show}
+            />
+          </Suspense>
         );
     }
   };

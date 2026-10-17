@@ -1,6 +1,7 @@
-import { CircleDollarSign, ShieldCheck, ShieldAlert, Download } from 'lucide-react';
+import { CircleDollarSign, ShieldCheck, ShieldAlert, Download, Lock } from 'lucide-react';
 import { NAV_ITEMS, TabKey } from '../../nav';
 import { APP_VERSION } from '../../config';
+import { useAppLock } from '../../lock/AppLock';
 
 interface SidebarProps {
   active: TabKey;
@@ -11,6 +12,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ active, onNavigate, backupLabel, needsBackup, onBackup }: SidebarProps) {
+  const lock = useAppLock();
   const mainItems = NAV_ITEMS.filter((i) => i.key !== 'settings');
   const settingsItem = NAV_ITEMS.find((i) => i.key === 'settings')!;
 
@@ -71,6 +73,18 @@ export default function Sidebar({ active, onNavigate, backupLabel, needsBackup, 
             <Download className="w-3.5 h-3.5" /> Sao lưu ngay
           </button>
         </div>
+        {lock.enabled && (
+          <button
+            id="sidebar-lock-btn"
+            type="button"
+            onClick={lock.lockNow}
+            title="Khóa ứng dụng (phím L)"
+            className="mt-2.5 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold text-slate-600 bg-white/80 border border-white hover:text-indigo-600 transition-colors cursor-pointer"
+          >
+            <Lock className="w-3.5 h-3.5" /> Khóa ứng dụng
+            <kbd className="ml-1 px-1.5 rounded border border-slate-200 bg-slate-50 font-mono text-[10px] text-slate-500">L</kbd>
+          </button>
+        )}
         <p className="mt-3 text-center text-[10px] font-semibold text-slate-400">Phiên bản {APP_VERSION}</p>
       </div>
     </aside>

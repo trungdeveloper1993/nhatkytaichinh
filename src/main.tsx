@@ -4,6 +4,7 @@ import App from './App.tsx';
 import { PrivacyProvider } from './PrivacyContext.tsx';
 import { ToastProvider } from './ToastContext.tsx';
 import { DialogProvider } from './DialogContext.tsx';
+import { AppLockProvider } from './lock/AppLock.tsx';
 import { isStandaloneApp } from './hooks.ts';
 import { autoPersistStorage, registerServiceWorker } from './pwa/register.ts';
 import './index.css';
@@ -24,7 +25,9 @@ createRoot(document.getElementById('root')!).render(
     <PrivacyProvider>
       <ToastProvider>
         <DialogProvider>
-          <App />
+          <AppLockProvider>
+            <App />
+          </AppLockProvider>
         </DialogProvider>
       </ToastProvider>
     </PrivacyProvider>

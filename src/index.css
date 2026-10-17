@@ -20,6 +20,11 @@ body {
   background-color: #eef2ff;
 }
 
+/* Khi đã bật mã PIN: che nội dung lúc app chạy nền (ảnh trong trình chuyển ứng dụng) */
+html.app-shield body > *:not(#app-lock-root) {
+  visibility: hidden;
+}
+
 /* Ẩn thanh cuộn cho các hàng cuộn ngang (chip, bộ lọc) */
 .no-scrollbar {
   scrollbar-width: none;
