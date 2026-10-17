@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { applyUpdate, checkForUpdate, isUpdateReady, onUpdateReady } from './pwa/register';
 
 // Theo dõi một media query (vd. '(min-width: 640px)')
@@ -125,4 +125,33 @@ export function useStoragePersistence() {
   }, [supported]);
 
   return { supported, persisted, request };
+}
+
+// Số chạy dần tới giá trị mới (hiệu ứng đếm tiền). Tắt khi người dùng chọn giảm chuyển động.
+export function useCountUp(target: number, duration = 700): number {
+  const reduce = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const [value, setValue] = useState(reduce ? target : 0);
+  const current = useRef(value);
+
+  useEffect(() => {
+    const from = current.current;
+    if (reduce || from === target) {
+      current.current = target;
+      setValue(target);
+      return;
+    }
+    let frame = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const next = Math.round(from + (target - from) * (1 - Math.pow(1 - t, 3)));
+      current.current = next;
+      setValue(next);
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, duration, reduce]);
+
+  return value;
 }

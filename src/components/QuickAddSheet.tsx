@@ -3,7 +3,7 @@ import { PencilLine, PlusCircle, Trash2 } from 'lucide-react';
 import { Fund, Transaction } from '../types';
 import Sheet from './ui/Sheet';
 import TransactionForm, { TxKind } from './TransactionForm';
-import { revertTransaction, TransactionInput } from '../ledger';
+import { revertTransaction, toISODate, TransactionInput } from '../ledger';
 
 interface QuickAddSheetProps {
   open: boolean;
@@ -12,6 +12,7 @@ interface QuickAddSheetProps {
   funds: Fund[];
   initialType?: TxKind;
   initialFundId?: string;
+  initialDate?: string;
   editing?: Transaction | null;
   onSubmit: (tx: TransactionInput) => void;
   onDelete?: (tx: Transaction) => void;
@@ -24,10 +25,12 @@ export default function QuickAddSheet({
   funds,
   initialType,
   initialFundId,
+  initialDate,
   editing,
   onSubmit,
   onDelete,
 }: QuickAddSheetProps) {
+  const pastDate = !editing && initialDate && initialDate !== toISODate() ? initialDate.split('-').reverse().join('/') : null;
   // Khi sửa: kiểm tra số dư dựa trên số dư đã hoàn lại giao dịch cũ
   const formFunds = useMemo(() => (editing ? revertTransaction(funds, editing) : funds), [funds, editing]);
 
@@ -37,7 +40,13 @@ export default function QuickAddSheet({
       onClose={onClose}
       id="quick-add-sheet"
       title={editing ? 'Sửa giao dịch' : 'Ghi chép mới'}
-      subtitle={editing ? 'Số dư các quỹ sẽ được tính lại theo thay đổi' : 'Chi tiêu, bổ sung tiền hoặc chuyển giữa các quỹ'}
+      subtitle={
+        editing
+          ? 'Số dư các quỹ sẽ được tính lại theo thay đổi'
+          : pastDate
+            ? `Ghi cho ngày ${pastDate}`
+            : 'Chi tiêu, bổ sung tiền hoặc chuyển giữa các quỹ'
+      }
       icon={
         <span className="flex p-2 rounded-xl bg-indigo-50 text-indigo-600">
           {editing ? <PencilLine className="w-5 h-5" /> : <PlusCircle className="w-5 h-5" />}
@@ -52,6 +61,7 @@ export default function QuickAddSheet({
         editing={editing}
         initialType={initialType}
         initialFundId={initialFundId}
+        initialDate={initialDate}
         onSubmit={onSubmit}
       />
       {editing && onDelete && (

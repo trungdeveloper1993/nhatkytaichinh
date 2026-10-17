@@ -1,14 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Transaction, Fund } from '../types';
 import { calculateCategorySpending, calculateMonthlyReports, formatMonthYear } from '../utils';
 import { usePrivacy } from '../PrivacyContext';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
-import { TrendingUp, TrendingDown, Calendar, PieChart as PieIcon, BarChart3, AlertCircle, AlertTriangle, CheckCircle2, Info, Sparkles } from 'lucide-react';
-import { motion } from 'motion/react';
+import { TrendingUp, TrendingDown, PieChart as PieIcon, BarChart3, AlertCircle, AlertTriangle, CheckCircle2, Info, Sparkles } from 'lucide-react';
 
 interface FinancialChartsProps {
   transactions: Transaction[];
   funds: Fund[];
+  /** Tháng đang xem (YYYY-MM) — chọn ở thanh tháng của trang Báo cáo */
+  month: string;
 }
 
 const COLOR_PALETTE = [
@@ -22,32 +23,8 @@ const COLOR_PALETTE = [
   '#64748b'  // Slate
 ];
 
-export default function FinancialCharts({ transactions, funds }: FinancialChartsProps) {
-  const { format: formatCurrency, compact } = usePrivacy();
-  // Số gọn trên mobile (1,84 tỷ), đầy đủ từ màn hình vừa trở lên
-  const responsiveAmount = (amount: number) => (
-    <>
-      <span className="sm:hidden">{compact(amount)}</span>
-      <span className="hidden sm:inline">{formatCurrency(amount)}</span>
-    </>
-  );
-  // Get all unique months from transactions in sorted order
-  const availableMonths = useMemo(() => {
-    const months = new Set<string>();
-    // Default current month in case transactions are empty
-    const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    months.add(currentMonth);
-
-    transactions.forEach((tx) => {
-      months.add(tx.date.substring(0, 7));
-    });
-    return Array.from(months).sort().reverse(); // Show latest month first
-  }, [transactions]);
-
-  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
-    return availableMonths[0] || '2026-07';
-  });
+export default function FinancialCharts({ transactions, month: selectedMonth }: FinancialChartsProps) {
+  const { format: formatCurrency } = usePrivacy();
 
   // Calculate stats for selected month
   const selectedMonthStats = useMemo(() => {
@@ -188,54 +165,6 @@ export default function FinancialCharts({ transactions, funds }: FinancialCharts
 
   return (
     <div id="financial-charts-container" className="space-y-6">
-      {/* Month Filter Selector & Quick Summary */}
-      <div className="bg-white/30 backdrop-blur-md border border-white/40 rounded-2xl p-3.5 min-[450px]:p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex items-center gap-2.5">
-          <Calendar className="w-5 h-5 text-indigo-500 shrink-0" />
-          <div>
-            <h4 className="text-[11px] min-[360px]:text-xs font-bold text-slate-500 uppercase tracking-wider">Thời gian xem báo cáo</h4>
-            <div className="flex items-center gap-2 mt-1">
-              <select
-                id="charts-month-select"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="font-display font-bold text-slate-800 text-xs min-[360px]:text-sm bg-white/60 border border-white/60 px-2.5 py-1.5 rounded-lg outline-hidden focus:ring-2 focus:ring-indigo-100 cursor-pointer"
-              >
-                {availableMonths.map((m) => (
-                  <option key={m} value={m}>
-                    {formatMonthYear(m)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-1.5 min-[380px]:gap-2 sm:gap-4 md:gap-6 flex-1 w-full max-w-xl">
-          <div className="bg-white/60 px-2 py-2.5 min-[380px]:px-2.5 min-[450px]:p-3.5 rounded-xl border border-white/40 shadow-xs flex flex-col justify-between min-w-0">
-            <p className="text-[9px] min-[360px]:text-[10px] font-bold text-slate-500 uppercase tracking-tight">Tổng Thu</p>
-            <p className="font-display font-bold text-[10.5px] min-[360px]:text-xs min-[450px]:text-sm sm:text-base text-emerald-600 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis" title={`+${formatCurrency(selectedMonthStats.income)}`}>
-              +{responsiveAmount(selectedMonthStats.income)}
-            </p>
-          </div>
-          <div className="bg-white/60 px-2 py-2.5 min-[380px]:px-2.5 min-[450px]:p-3.5 rounded-xl border border-white/40 shadow-xs flex flex-col justify-between min-w-0">
-            <p className="text-[9px] min-[360px]:text-[10px] font-bold text-slate-500 uppercase tracking-tight">Tổng Chi</p>
-            <p className="font-display font-bold text-[10.5px] min-[360px]:text-xs min-[450px]:text-sm sm:text-base text-red-500 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis" title={`-${formatCurrency(selectedMonthStats.expense)}`}>
-              -{responsiveAmount(selectedMonthStats.expense)}
-            </p>
-          </div>
-          <div className="bg-white/60 px-2 py-2.5 min-[380px]:px-2.5 min-[450px]:p-3.5 rounded-xl border border-white/40 shadow-xs flex flex-col justify-between min-w-0">
-            <p className="text-[9px] min-[360px]:text-[10px] font-bold text-slate-500 uppercase tracking-tight">Thặng dư</p>
-            <p className={`font-display font-bold text-[10.5px] min-[360px]:text-xs min-[450px]:text-sm sm:text-base mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis ${
-              selectedMonthStats.balance >= 0 ? 'text-indigo-600' : 'text-amber-600'
-            }`} title={`${selectedMonthStats.balance >= 0 ? '+' : ''}${formatCurrency(selectedMonthStats.balance)}`}>
-              {selectedMonthStats.balance >= 0 ? '+' : ''}
-              {responsiveAmount(selectedMonthStats.balance)}
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Tổng Kết & Nhận Định */}
       {insights.length > 0 && (
         <div className="glass-card rounded-2xl p-5 border border-white/40 shadow-xs">
