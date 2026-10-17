@@ -13,6 +13,8 @@ interface TransactionFormProps {
   onSubmit: (tx: TransactionInput) => void;
   initialType?: TxKind;
   initialFundId?: string;
+  /** Ngày ghi sẵn (YYYY-MM-DD), vd. khi ghi chép từ lịch báo cáo */
+  initialDate?: string;
   editing?: Transaction | null;
   variant?: 'card' | 'plain';
   /** Tiền tố id khi trang có 2 form cùng lúc (vd. sheet ghi chép nhanh) để id không trùng */
@@ -42,6 +44,7 @@ export default function TransactionForm({
   onSubmit,
   initialType = 'expense',
   initialFundId,
+  initialDate,
   editing,
   variant = 'card',
   idPrefix,
@@ -62,7 +65,7 @@ export default function TransactionForm({
   const [customCategory, setCustomCategory] = useState(editingIsCustom ? editing!.category : '');
   const [isCustom, setIsCustom] = useState(editingIsCustom);
   const [notes, setNotes] = useState(editing?.notes ?? '');
-  const [date, setDate] = useState(editing?.date ?? today);
+  const [date, setDate] = useState(editing?.date ?? initialDate ?? today);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { format: formatBalance } = usePrivacy();
 

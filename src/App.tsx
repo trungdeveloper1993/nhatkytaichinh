@@ -26,16 +26,16 @@ import FundDetailSheet from './components/FundDetailSheet';
 import ManagementModal from './components/ManagementModal';
 import WhatsNewSheet, { useWhatsNew } from './components/WhatsNewSheet';
 import { TxKind } from './components/TransactionForm';
-import { PageHeader } from './components/ui/primitives';
 
-// Tab Báo cáo dùng thư viện biểu đồ nặng -> tải khi cần để mở app nhanh hơn
-const FinancialCharts = lazy(() => import('./components/FinancialCharts'));
+// Trang Báo cáo (lịch + biểu đồ) chỉ tải khi mở tab để app khởi động nhanh hơn
+const ReportsPage = lazy(() => import('./pages/ReportsPage'));
 
 interface QuickAddState {
   open: boolean;
   key: number;
   type?: TxKind;
   fundId?: string;
+  date?: string;
   editing?: Transaction | null;
 }
 
@@ -83,8 +83,8 @@ export default function App() {
 
   // ---- Sheet: ghi chép nhanh / sửa giao dịch ----
   const [quickAdd, setQuickAdd] = useState<QuickAddState>({ open: false, key: 0 });
-  const openQuickAdd = useCallback((type?: TxKind, fundId?: string) => {
-    setQuickAdd((q) => ({ open: true, key: q.key + 1, type, fundId, editing: null }));
+  const openQuickAdd = useCallback((type?: TxKind, fundId?: string, date?: string) => {
+    setQuickAdd((q) => ({ open: true, key: q.key + 1, type, fundId, date, editing: null }));
   }, []);
   const openEditTransaction = useCallback((tx: Transaction) => {
     setQuickAdd((q) => ({ open: true, key: q.key + 1, editing: tx }));
@@ -345,18 +345,20 @@ export default function App() {
         return <AllocationPlanner funds={sortedFunds} transactions={transactions} onUpdateFund={store.updateFund} />;
       case 'reports':
         return (
-          <div>
-            <PageHeader title={NAV_BY_KEY.reports.label} description={NAV_BY_KEY.reports.description} />
-            <Suspense
-              fallback={
-                <div className="flex items-center justify-center gap-2 py-24 text-sm font-semibold text-slate-500">
-                  <Loader2 className="w-5 h-5 animate-spin text-indigo-600" /> Đang tải báo cáo...
-                </div>
-              }
-            >
-              <FinancialCharts transactions={transactions} funds={sortedFunds} />
-            </Suspense>
-          </div>
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center gap-2 py-24 text-sm font-semibold text-slate-500">
+                <Loader2 className="w-5 h-5 animate-spin text-indigo-600" /> Đang tải báo cáo...
+              </div>
+            }
+          >
+            <ReportsPage
+              funds={sortedFunds}
+              transactions={transactions}
+              onEditTransaction={openEditTransaction}
+              onAddForDate={(date) => openQuickAdd(undefined, undefined, date)}
+            />
+          </Suspense>
         );
       case 'settings':
         return (
@@ -466,6 +468,7 @@ export default function App() {
         funds={sortedFunds}
         initialType={quickAdd.type}
         initialFundId={quickAdd.fundId}
+        initialDate={quickAdd.date}
         editing={quickAdd.editing}
         onSubmit={handleQuickAddSubmit}
         onDelete={(tx) => {
